@@ -67,7 +67,7 @@ track of the top directory for the project.
     % source setup-ece5745.sh
     % mkdir $HOME/ece5745
     % cd $HOME/ece5745
-    % git clone git@github.com:cornell-ece5745/ece5745-S01-front-end
+    % git clone https://github.com/cornell-ece5745/ece5745-S01-front-end
     % cd ece5745-S01-front-end
     % TOPDIR=$PWD
 
