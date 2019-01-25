@@ -53,9 +53,16 @@ organized this documentation and made it available to you on the [public
 course webpage](http://www.csl.cornell.edu/courses/ece5745/syndocs). The
 username/password was distributed during lecture.
 
-The first step is to source the setup script, clone this repository from
-GitHub, and define an environment variable to keep track of the top
-directory for the project.
+The first step is to start MobaXterm. From the _Start_ menu, choose
+_MobaXterm Educational Edition > MobaXterm Educational Edition_. Then
+double click on _ecelinux.ece.cornell.edu_ under _Saved sessions_ in
+MobaXterm. Log in using your NetID and password. Click _Yes_ when asked
+if you want to save your password. This will make it easier to open
+multiple terminals if you need to.
+
+Once you are at the `ecelinux` prompt, source the setup script, clone
+this repository from GitHub, and define an environment variable to keep
+track of the top directory for the project.
 
     % source setup-ece5745.sh
     % mkdir $HOME/ece5745
