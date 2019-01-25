@@ -138,7 +138,9 @@ will write a generic multi-stage registered incrementer. For this section
 function-level models, and cycle-level models will all be written in
 PyMTL. However, you are free to do your actual RTL design work in either
 PyMTL or Verilog. Prof. Batten will now spend a few minutes explaining
-how PyMTL works.
+how PyMTL works using these slides:
+
+  - [https://www.csl.cornell.edu/courses/ece5745/handouts/ece5745-S01-front-end-slides.pdf](https://www.csl.cornell.edu/courses/ece5745/handouts/ece5745-S01-front-end-slides.pdf)
 
 ### Choose RTL Design Language
 
