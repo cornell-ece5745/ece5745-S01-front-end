@@ -28,8 +28,6 @@ model.vcd_file = "regincr-4stage-sim.vcd"
 #
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-model = TranslationTool( model )
-
 model.elaborate()
 sim = SimulationTool( model )
 
