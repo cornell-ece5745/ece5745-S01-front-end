@@ -22,10 +22,12 @@ some RTL and synthesize that to a gate-level netlist. The following
 diagram illustrates the four primary tools we will be using in ECE 5745
 along with a few smaller secondary tools. Notice that the Synopsys and
 Cadence ASIC tools all require various views from the standard-cell
-library. The "front-end" of the flow refers to the PyMTL simulator and
-Synopsys DC.
+library.
 
 ![](assets/fig/asic-flow.png)
+
+The "front-end" of the flow is highlighted in red and refers to
+the PyMTL simulator and Synopsys DC:
 
  1. We use the PyMTL framework to test, verify, and evaluate the
     execution time (in cycles) of our design. This part of the flow is
@@ -89,15 +91,15 @@ Let's take a look at some layout for some cells.
 Let's look at a 3-input NAND cell, find the NAND3_X1 cell in the
 left-hand cell list, and then choose _Display > Show as New Top_ from the
 menu. We will learn more about layout and how this layout corresponds to
-a static CMOS circuit later in the course. The key point is that this
-layout is a basic building block that we will be using to create our ASIC
-chips.
+a static CMOS circuit later in the course. The key point is that the
+layout for the standard cells are the basic building blocks that we will
+be using to create our ASIC chips.
 
 The Synopsys and Cadence tools do not actually use this layout directly;
 it is actually _too_ detailed. Instead these tools use abstract views of
 the standard cells, which capture logical functionality, timing,
 geometry, and power usage at a much higher level. Let's look at the
-Verilog behavior specification for the 3-input NAND cell.
+Verilog behavioral specification for the 3-input NAND cell.
 
 ```
  % less -p NAND3_X1 $ECE5745_STDCELLS/stdcells.v
@@ -110,8 +112,8 @@ of one delay unit (i.e., `#1`), and it includes a `specify` block which
 is used for advanced gate-level simulation with back-annotated delays.
 
 Finally, let's look at an abstract view of the timing and power of the
-3-input NAND cell suitable for use by the ASIC This abstract view is in
-the `.lib` file for the standard cell library.
+3-input NAND cell suitable for use by the ASIC flow. This abstract view
+is in the `.lib` file for the standard cell library.
 
 ```
  % less -p NAND3_X1 $ECE5745_STDCELLS/stdcells.lib
@@ -119,7 +121,7 @@ the `.lib` file for the standard cell library.
 
 Now that we have looked at some of the views of the standard cell
 library, we can now try using these views and the ASIC flow front-end to
-synthesize RTL into a gate-level net list.
+synthesize RTL into a gate-level netlist.
 
 PyMTL-Based Testing, Simulation, Translation
 --------------------------------------------------------------------------
