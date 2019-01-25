@@ -209,7 +209,7 @@ increment operation. So for a PyMTL implementation you should edit
       def line_trace( s ):
         return "{} ({}) {}".format( s.in_, s.reg_out, s.out )
 
-For a Verilog implementation you should edit `RegIncrVRTL.py` to look as
+For a Verilog implementation you should edit `RegIncrVRTL.v` to look as
 follows:
 
     `ifndef REG_INCR_V
