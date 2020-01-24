@@ -3,7 +3,7 @@ ECE 5745 Section 1: ASIC Flow Front-End
 ==========================================================================
 
  - Author: Christopher Batten
- - Date: January 24, 2019
+ - Date: January 23, 2020
 
 **Table of Contents**
 
@@ -17,12 +17,11 @@ Introduction
 
 In this section, we will be discussing the front-end of the ASIC
 toolflow. More detailed tutorials will be posted on the public course
-website shortly, but this section will at least give you a chance to edit
-some RTL and synthesize that to a gate-level netlist. The following
-diagram illustrates the four primary tools we will be using in ECE 5745
-along with a few smaller secondary tools. Notice that the Synopsys and
-Cadence ASIC tools all require various views from the standard-cell
-library.
+website, but this section will at least give you a chance to edit some
+RTL and synthesize that to a gate-level netlist. The following diagram
+illustrates the four primary tools we will be using in ECE 5745 along
+with a few smaller secondary tools. Notice that the Synopsys and Cadence
+ASIC tools all require various views from the standard-cell library.
 
 ![](assets/fig/asic-flow.png)
 
@@ -163,48 +162,48 @@ Now let's run all of the tests for the registered incrementer:
 
     % mkdir $TOPDIR/sim/build
     % cd $TOPDIR/sim/build
-    % py.test ../regincr
+    % pytest ../regincr
 
 The tests will fail because we need to finish the implementation. Let's
 start by focusing on the basic registered incrementer module.
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrRTL_test.py
+    % pytest ../regincr/RegIncrRTL_test.py
 
 **To Do On Your Own:** Use `geany` or your favorite text editor to open
 the implementation and add the actual combinational logic for the
 increment operation. So for a PyMTL implementation you should edit
 `RegIncrPRTL.py` to look as follows:
 
-    from pymtl import *
+    from pymtl3 import *
 
     class RegIncrPRTL( Model ):
 
       # Constructor
 
-      def __init__( s ):
+      def construct( s ):
 
         # Port-based interface
 
-        s.in_ = InPort  ( Bits(8) )
-        s.out = OutPort ( Bits(8) )
+        s.in_ = InPort  ( Bits8 )
+        s.out = OutPort ( Bits8 )
 
         # Sequential logic
 
-        s.reg_out = Wire( Bits(8) )
+        s.reg_out = Wire( Bits8 )
 
-        @s.tick_rtl
+        @s.update_ff
         def block1():
           if s.reset:
-            s.reg_out.next = 0
+            s.reg_out <<= b8(0)
           else:
-            s.reg_out.next = s.in_
+            s.reg_out <<= s.in_
 
         # Combinational logic
 
-        @s.combinational
+        @s.update
         def block2():
-          s.out.value = s.reg_out + 1
+          s.out = s.reg_out + b8(1)
 
       def line_trace( s ):
         return "{} ({}) {}".format( s.in_, s.reg_out, s.out )
@@ -252,21 +251,21 @@ If you have an error you can use a trace-back to get a more detailed
 error message:
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrRTL_test.py --tb=long
+    % pytest ../regincr/RegIncrRTL_test.py --tb=long
 
 Once you have finished the implementation let's rerun the tests:
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrRTL_test.py -sv
+    % pytest ../regincr/RegIncrRTL_test.py -sv
 
-The `-v` command line option tells `py.test` to be more verbose in its
-output and the `-s` command line option tells `py.test` to print out the
+The `-v` command line option tells `pytest` to be more verbose in its
+output and the `-s` command line option tells `pytest` to print out the
 line tracing. Make sure you understand the line tracing output. You can
 also dump VCD files for waveform debugging with `gtkwave`:
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrRTL_test.py -sv --dump-vcd
-    % gtkwave regincr.RegIncrRTL_test.test_small.verilator1.vcd
+    % pytest ../regincr/RegIncrRTL_test.py -sv --dump-vcd
+    % gtkwave regincr.RegIncrRTL_test.test_small.vcd
 
 **To Do On Your Own:** Add some more tests by using `geany` or your
 favorite text editor to open the test script named `RegIncrRTL_test.py`.
@@ -288,16 +287,16 @@ the end of the test script:
 Now rerun the tests:
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrRTL_test.py -sv
+    % pytest ../regincr/RegIncrRTL_test.py -sv
 
 PyMTL supports automatically translating PyMTL RTL into Verilog RTL so we
 can then use that Verilog RTL with the ASIC flow. To test the translated
 verilog you can use the `--test-verilog` command line option:
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrRTL_test.py --test-verilog
-    % ls *.v
-    % less *.v
+    % pytest ../regincr/RegIncrRTL_test.py --test-verilog
+    % ls *.sv
+    % less *.sv
 
 You should use `--test-verilog` regardless of whether or not you
 implemented your design in PyMTL or Verilog. Take a look at the generated
@@ -315,56 +314,49 @@ generate a pipeline with one stage, two stages, four stages, etc. Let's
 start by running all of the tests for the multi-stage registered incrementer.
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrNstageRTL_test.py
+    % pytest ../regincr/RegIncrNstageRTL_test.py
 
 **To Do On Your Own:** Use geany or your favorite text editor to open the
 implementation and add the actual static elabroation logic to instantiate
 a pipeline of registered incrementers. So for a PyMTL implementation you
 should edit `RegIncrNstagePRTL.py` to look as follows:
 
-    from pymtl      import *
-    from RegIncrRTL import RegIncrRTL
+    from pymtl3      import *
+    from .RegIncrRTL import RegIncrRTL
 
-    class RegIncrNstagePRTL( Model ):
+    class RegIncrNstagePRTL( Component ):
 
       # Constructor
 
-      def __init__( s, nstages=2 ):
-
-        # Verilog module name
-
-        s.explicit_modulename = "RegIncrNstageRTL_{}stage".format(nstages)
+      def construct( s, nstages=2 ):
 
         # Port-based interface
 
-        s.in_ = InPort  (8)
-        s.out = OutPort (8)
+        s.in_ = InPort  ( Bits8 )
+        s.out = OutPort ( Bits8 )
 
         # Instantiate the registered incrementers
 
-        s.reg_incrs = [ RegIncrRTL() for x in xrange(nstages) ]
+        s.reg_incrs = [ RegIncrRTL() for _ in range(nstages) ]
 
         # Connect input port to first reg_incr in chain
 
-        s.connect( s.in_, s.reg_incrs[0].in_ )
+        connect( s.in_, s.reg_incrs[0].in_ )
 
         # Connect reg_incr in chain
 
         for i in xrange( nstages - 1 ):
-          s.connect( s.reg_incrs[i].out, s.reg_incrs[i+1].in_ )
+          connect( s.reg_incrs[i].out, s.reg_incrs[i+1].in_ )
 
         # Connect last reg_incr in chain to output port
 
-        s.connect( s.reg_incrs[-1].out, s.out )
+        connect( s.reg_incrs[-1].out, s.out )
 
       # Line tracing
 
-      def line_trace( s ):
-        return "{} ({}) {}".format(
-          s.in_,
-          '|'.join([ str(reg_incr.out) for reg_incr in s.reg_incrs ]),
-          s.out
-        )
+    def line_trace( s ):
+      pipe_str = '|'.join([ str(reg_incr.out) for reg_incr in s.reg_incrs ])
+      return f"{s.in_} ({pipe_str}) {s.out}"
 
 For a Verilog implementation you should edit `RegIncrNstageVRTL.py` to
 look as follows:
@@ -436,15 +428,15 @@ Let's re-run a single test and use line tracing to see the data moving
 through the pipeline:
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrNstageRTL_test.py -sv -k 3stage_small
+    % pytest ../regincr/RegIncrNstageRTL_test.py -sv -k 3stage_small
 
 And now let's run all of the tests both without and with translation:
 
     % cd $TOPDIR/sim/build
-    % py.test ../regincr/RegIncrNstageRTL_test.py
-    % py.test ../regincr/RegIncrNstageRTL_test.py --test-verilog
-    % ls *.v
-    % less *.v
+    % pytest ../regincr/RegIncrNstageRTL_test.py
+    % pytest ../regincr/RegIncrNstageRTL_test.py --test-verilog
+    % ls *.sv
+    % less *.sv
 
 Again, take a close look at the generated Verilog.
 
@@ -459,27 +451,32 @@ the command line and sends these values through the pipeline. Let's see
 the simulator in action:
 
     % cd $TOPDIR/sim/build
-    % ../regincr/regincr-sim 10 20 30 40
+    % ../regincr/regincr-sim 0x10 0x20 0x30 0x40
 
 **To Do On Your Own:** Modify the simulator to also do translation. Use
 `geany` or your favorite text editor to add some code to use the
-`TranslationTool` before elaborating the design. Note that you need to do
-this step regardless of whether you are using PyMTL or Verilog for RTL
-design.
+`TranslationImportPass` after elaborating the design. Note that you need
+to do this step regardless of whether you are using PyMTL or Verilog for
+RTL design.
 
     model = RegIncrNstageRTL( nstages=4 )
-    model.vcd_file = "regincr-4stage-sim.vcd"
-    model = TranslationTool( model )           # <-- add this line
+    model.config_tracing = TracingConfigs(
+      tracing='vcd',
+      vcd_file_name="regincr-sim"
+    )
+
     model.elaborate()
-    sim = SimulationTool( model )
+    model.sverilog_translate_import = True     # add these two
+    model = TranslationImportPass()( model )   # lines of code
+    model.apply( SimulationPass() )
 
 Once you have done this step, let's clean up our build directory, and
 rerun the simulator.
 
     % cd $TOPDIR/sim/build
     % trash *
-    % ../regincr/regincr-sim 10 20 30 40
-    % more RegIncrNstageRTL_4stage.v
+    % ../regincr/regincr-sim 0x10 0x20 0x30 0x40
+    % more RegIncrNstagePRTL__nstages_4.sv
 
 We now have the Verilog RTL that we want push through the next step in
 the ASIC front-end flow.
@@ -516,8 +513,8 @@ representation. The elaborate command recursively resolves all of the
 module references starting from the top-level module, and also infers
 various registers and/or advanced data-path components.
 
-    dc_shell> analyze -format sverilog ../../sim/build/RegIncrNstageRTL_4stage.v
-    dc_shell> elaborate RegIncrNstageRTL_4stage
+    dc_shell> analyze -format sverilog ../../sim/build/RegIncrNstagePRTL__nstages_4.sv
+    dc_shell> elaborate RegIncrNstagePRTL__nstages_4
 
 We can use the `check_design` command to make sure there are no obvious
 errors in our Verilog RTL.
@@ -585,9 +582,9 @@ synthesis.
 You can use the following steps to view the gate-level schematic for the
 design.:
 
- - Select the `RegIncrNstageRTL_4stage` module in the _Logical Hierarchy_ panel
+ - Select the `RegIncrNstagePRTL__nstages_4` module in the _Logical Hierarchy_ panel
  - Choose _Schematic > New Schematic View_ from the menu
- - Double click the box representing the `RegIncrNstageRTL_4stage` in the schematic view
+ - Double click the box representing the `RegIncrNstageRTL__nstages_4` in the schematic view
  - Continue to double click to move through the design hierarchy
 
 You can determine the type of module or gate by selecting the module or
@@ -614,4 +611,6 @@ timing". Try using a clock constraint of 0.3ns instead of 1ns. Use
 synthesis tool has chosen. Use `report_timing` to see if the tool is able
 to generate a gate-level netlist that can really run at 333MHz. Use
 `report_area` to compare the area of the design with the 0.3ns clock
-constraint to the design with the 1ns clock constraint.
+constraint to the design with the 1ns clock constraint. Use Synopsys DV
+to visualize the improved adder microarchitecture.
+
