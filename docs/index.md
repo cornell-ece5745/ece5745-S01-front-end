@@ -143,8 +143,8 @@ how PyMTL works using these slides:
 ### Choose RTL Design Language
 
 So the first step is to decide if you want to do this section using PyMTL
-or Verilog. Edit these two files using `geany` or your favorite text
-editor to let the framework know your choice:
+RTL or Verilog RTL. Edit these two files using `geany` or your favorite
+text editor to let the framework know your choice:
 
     % geany $TOPDIR/sim/regincr/RegIncrRTL.py
     % geany $TOPDIR/sim/regincr/RegIncrNstageRTL.py
@@ -172,7 +172,7 @@ start by focusing on the basic registered incrementer module.
 
 **To Do On Your Own:** Use `geany` or your favorite text editor to open
 the implementation and add the actual combinational logic for the
-increment operation. So for a PyMTL implementation you should edit
+increment operation. So for a PyMTL RTL implementation you should edit
 `RegIncrPRTL.py` to look as follows:
 
     from pymtl3 import *
@@ -201,15 +201,21 @@ increment operation. So for a PyMTL implementation you should edit
 
         # Combinational logic
 
+        s.temp_wire = Wire( Bits8 )
+
         @s.update
         def block2():
-          s.out = s.reg_out + b8(1)
+          s.temp_wire = s.reg_out + b8(1)
+
+        # Combinational logic
+
+        s.out //= s.temp_wire
 
       def line_trace( s ):
         return "{} ({}) {}".format( s.in_, s.reg_out, s.out )
 
-For a Verilog implementation you should edit `RegIncrVRTL.v` to look as
-follows:
+For a Verilog RTL implementation you should edit `RegIncrVRTL.v` to look
+as follows:
 
     `ifndef REG_INCR_V
     `define REG_INCR_V
@@ -218,23 +224,25 @@ follows:
     (
       input  logic       clk,
       input  logic       reset,
-      input  logic [7:0] in,
+      input  logic [7:0] in_,
       output logic [7:0] out
     );
 
       // Sequential logic
 
       logic [7:0] reg_out;
+
       always @( posedge clk ) begin
         if ( reset )
           reg_out <= 0;
         else
-          reg_out <= in;
+          reg_out <= in_;
       end
 
       // Combinational logic
 
       logic [7:0] temp_wire;
+
       always @(*) begin
         temp_wire = reg_out + 1;
       end
@@ -267,6 +275,12 @@ also dump VCD files for waveform debugging with `gtkwave`:
     % pytest ../regincr/RegIncrRTL_test.py -sv --dump-vcd
     % gtkwave regincr.RegIncrRTL_test.test_small.vcd
 
+If you are using Verilog RTL instead of PyMTL RTL, you might need to use
+this:
+
+    % cd $TOPDIR/sim/build
+    % gtkwave RegIncrVRTL.verilator1.vcd
+
 **To Do On Your Own:** Add some more tests by using `geany` or your
 favorite text editor to open the test script named `RegIncrRTL_test.py`.
 PyMTL provides lots of helper utilities to make testing more productive.
@@ -291,18 +305,19 @@ Now rerun the tests:
 
 PyMTL supports automatically translating PyMTL RTL into Verilog RTL so we
 can then use that Verilog RTL with the ASIC flow. To test the translated
-verilog you can use the `--test-verilog` command line option:
+verilog RTL you can use the `--test-verilog` command line option:
 
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrRTL_test.py --test-verilog
     % ls *.sv
-    % less *.sv
+    % less RegIncrPRTL.sv
 
 You should use `--test-verilog` regardless of whether or not you
-implemented your design in PyMTL or Verilog. Take a look at the generated
-Verilog. If you did your design in Verilog then it should look pretty
-much the same. If you did your design in PyMTL, hopefully it should be
-clear the one-to-one mapping from PyMTL to Verilog.
+implemented your design using PyMTL RTL or Verilog RTL. Take a look at
+the generated Verilog RTL. If you did your design in Verilog RTL then it
+won't generate any Verilog since we still have the Verilog RTL that you
+wrote by hand. If you did your design in PyMTL RTL, hopefully it should
+be clear the one-to-one mapping from PyMTL RTL to Verilog RTL.
 
 ### Implement, Test, and Translate Multi-Stage Registered Incrementer
 
@@ -311,15 +326,16 @@ multi-stage registered incrementer. We will be using _static elaboration_
 to make the multi-stage registered incrementer _generic_. In other words,
 our design will be parameterized by the number of stages so we can easily
 generate a pipeline with one stage, two stages, four stages, etc. Let's
-start by running all of the tests for the multi-stage registered incrementer.
+start by running all of the tests for the multi-stage registered
+incrementer.
 
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrNstageRTL_test.py
 
 **To Do On Your Own:** Use geany or your favorite text editor to open the
 implementation and add the actual static elabroation logic to instantiate
-a pipeline of registered incrementers. So for a PyMTL implementation you
-should edit `RegIncrNstagePRTL.py` to look as follows:
+a pipeline of registered incrementers. So for a PyMTL RTL implementation
+you should edit `RegIncrNstagePRTL.py` to look as follows:
 
     from pymtl3      import *
     from .RegIncrRTL import RegIncrRTL
@@ -345,7 +361,7 @@ should edit `RegIncrNstagePRTL.py` to look as follows:
 
         # Connect reg_incr in chain
 
-        for i in xrange( nstages - 1 ):
+        for i in range( nstages - 1 ):
           connect( s.reg_incrs[i].out, s.reg_incrs[i+1].in_ )
 
         # Connect last reg_incr in chain to output port
@@ -358,8 +374,8 @@ should edit `RegIncrNstagePRTL.py` to look as follows:
       pipe_str = '|'.join([ str(reg_incr.out) for reg_incr in s.reg_incrs ])
       return f"{s.in_} ({pipe_str}) {s.out}"
 
-For a Verilog implementation you should edit `RegIncrNstageVRTL.py` to
-look as follows:
+For a Verilog RTL implementation you should edit `RegIncrNstageVRTL.py`
+to look as follows:
 
     `ifndef REG_INCR_NSTAGE_V
     `define REG_INCR_NSTAGE_V
@@ -368,37 +384,37 @@ look as follows:
 
     module RegIncrNstageVRTL
     #(
-      parameter p_nstages = 2
+      parameter nstages = 2
     )(
       input  logic       clk,
       input  logic       reset,
-      input  logic [7:0] in,
+      input  logic [7:0] in_,
       output logic [7:0] out
     );
 
       // This defines an _array_ of signals. There are p_nstages+1 signals
-      // and each signal is 8 bits wide. We will use this array of signals to
-      // hold the output of each registered incrementer stage.
+      // and each signal is 8 bits wide. We will use this array of
+      // signals to hold the output of each registered incrementer stage.
 
-      logic [7:0] reg_incr_out [p_nstages+1];
+      logic [7:0] reg_incr_out [nstages+1];
 
       // Connect the input port of the module to the first signal in the
       // reg_incr_out signal array.
 
-      assign reg_incr_out[0] = in;
+      assign reg_incr_out[0] = in_;
 
       // Instantiate the registered incrementers and make the connections
       // between them using a generate block.
 
       genvar i;
       generate
-      for ( i = 0; i < p_nstages; i = i + 1 ) begin: gen
+      for ( i = 0; i < nstages; i = i + 1 ) begin: gen
 
         RegIncrVRTL reg_incr
         (
           .clk   (clk),
           .reset (reset),
-          .in    (reg_incr_out[i]),
+          .in_   (reg_incr_out[i]),
           .out   (reg_incr_out[i+1])
         );
 
@@ -408,7 +424,7 @@ look as follows:
       // Connect the last signal in the reg_incr_out signal array to the
       // output port of the module.
 
-      assign out = reg_incr_out[p_nstages];
+      assign out = reg_incr_out[nstages];
 
     endmodule
 
@@ -433,12 +449,19 @@ through the pipeline:
 And now let's run all of the tests both without and with translation:
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrNstageRTL_test.py
+    % pytest ../regincr/RegIncrNstageRTL_test.py -sv
     % pytest ../regincr/RegIncrNstageRTL_test.py --test-verilog
     % ls *.sv
-    % less *.sv
+    % less RegIncrNstagePRTL__nstages_4.sv
 
-Again, take a close look at the generated Verilog.
+If you are using Verilog RTL instead of PyMTL RTL, you might need to use
+this:
+
+    % cd $TOPDIR/sim/build
+    % less RegIncrNstageVRTL_w_params.sv
+
+Notice how we have generated a wrapper which picks a specific parameter
+value for this instance of the multi-stage registered incrementer.
 
 ### Simulate Multi-Stage Registered Incrementer
 
@@ -476,10 +499,59 @@ rerun the simulator.
     % cd $TOPDIR/sim/build
     % trash *
     % ../regincr/regincr-sim 0x10 0x20 0x30 0x40
-    % more RegIncrNstagePRTL__nstages_4.sv
+    % less RegIncrNstagePRTL__nstages_4.sv
 
-We now have the Verilog RTL that we want push through the next step in
-the ASIC front-end flow.
+If you are using Verilog RTL instead of PyMTL RTL, you might need to use
+this:
+
+    % cd $TOPDIR/sim/build
+    % less RegIncrNstageVRTL_w_params.sv
+
+If you are using Verilog RTL you need to concatenate the generated
+Verilog RTL with the hand-written Verilog RTL like this:
+
+    % cd $TOPDIR/sim/build
+    % verilator -E -I.. ../regincr/RegIncrNstageVRTL.v > temp.sv
+    % cat RegIncrNstageVRTL_w_params.sv temp.sv > RegIncrNstagePRTL__nstages_4.sv
+
+To make things simpler in the next step, if you are using Verilog RTL,
+you should go in and change the module name in
+RegIncrNstagePRTL__nstages_4.sv from this:
+
+    module RegIncrNstageVRTL_w_params
+
+to this:
+
+    module RegIncrNstagePRTL__nstages_4
+
+You also need to remove the very first `include` line from the generated
+Verilog RTL file. When you make these changes the top of the
+`RegIncrNstagePRTL__nstages_4.sv` should look like this:
+
+    // This is a top-level module that wraps a parametrized module
+    // This file is generated by PyMTL SystemVerilog import pass
+    module RegIncrNstagePRTL__nstages_4
+    (
+      input logic [1-1:0] clk,
+      input logic [8-1:0] in_,
+      output logic [8-1:0] out,
+      input logic [1-1:0] reset
+    );
+      RegIncrNstageVRTL
+      #(
+        .nstages( 4 )
+      ) wrapped_module
+      (
+        .clk( clk ),
+        .in_( in_ ),
+        .out( out ),
+        .reset( reset )
+      );
+    endmodule
+
+Notice how there is no `include` at the top of the file. We now have the
+Verilog RTL that we want push through the next step in the ASIC front-end
+flow.
 
 Using Synopsys Design Compiler for Synthesis
 --------------------------------------------------------------------------
