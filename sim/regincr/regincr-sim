@@ -6,8 +6,9 @@
 import os
 import sys
 
-from pymtl3            import *
-from pymtl3.passes     import TracingConfigs
+from pymtl3                          import *
+from pymtl3.passes                   import TracingConfigs
+from pymtl3.passes.backends.sverilog import TranslationImportPass
 
 # Hack to add project root to python path
 sim_dir = os.path.dirname( os.path.abspath( __file__ ) )
@@ -43,6 +44,11 @@ model.config_tracing = TracingConfigs(
 #
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+model.elaborate()
+
+model.sverilog_translate_import = True
+model = TranslationImportPass()( model )
+
 model.apply( SimulationPass() )
 
 # Reset simulator
@@ -56,6 +62,10 @@ for input_value in input_values:
   # Write input value to input port
 
   model.in_ = b8(input_value)
+
+  # Evaluate combinational logic
+
+  model.eval_combinational()
 
   # Display line trace
 
