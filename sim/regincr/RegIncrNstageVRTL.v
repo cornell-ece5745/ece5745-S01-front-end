@@ -42,7 +42,7 @@ module RegIncrNstageVRTL
     (
       .clk   (clk),
       .reset (reset),
-      .in    (reg_incr_out[i]),
+      .in_   (reg_incr_out[i]),
       .out   (reg_incr_out[i+1])
     );
 

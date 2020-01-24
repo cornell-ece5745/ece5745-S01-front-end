@@ -30,6 +30,11 @@ class RegIncrNstageVRTL( Component, Placeholder ):
     s.config_sverilog_import = ImportConfigs(
       # The absolute path of the SVerilog file to be imported
       vl_src = path.dirname(__file__) + '/RegIncrNstageVRTL.v',
+
+      # Add the parent diretory of `regincr` to the include search path
+      # This is because we assume include path relative to that directory
+      # during the `include in RegIncrNstageVRTL.v
+      vl_include = [ path.dirname(__file__) + '/..' ],
     )
 
 # Import the appropriate version based on the rtl_language variable
