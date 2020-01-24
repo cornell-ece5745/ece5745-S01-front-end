@@ -3,14 +3,25 @@
 # regincr-sim <input-values>
 #=========================================================================
 
+import os
+import sys
+
 from pymtl3            import *
 from pymtl3.passes     import TracingConfigs
-from sys               import argv
-from RegIncrNstageRTL  import RegIncrNstageRTL
+
+# Hack to add project root to python path
+sim_dir = os.path.dirname( os.path.abspath( __file__ ) )
+while sim_dir:
+  if os.path.exists( sim_dir + os.path.sep + ".pymtl_sim_root" ):
+    sys.path.insert(0,sim_dir)
+    break
+  sim_dir = os.path.dirname(sim_dir)
+
+from regincr.RegIncrNstageRTL import RegIncrNstageRTL
 
 # Get list of input values from command line
 
-input_values = [ int(x,0) for x in argv[1:] ]
+input_values = [ int(x,0) for x in sys.argv[1:] ]
 
 # Add three zero values to end of list of input values
 
@@ -36,7 +47,7 @@ model.apply( SimulationPass() )
 
 # Reset simulator
 
-mode.sim_reset()
+model.sim_reset()
 
 # Apply input values and display output values
 

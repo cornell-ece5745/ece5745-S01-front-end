@@ -17,7 +17,7 @@ def test_small( dump_vcd, test_verilog ):
     [ 0x03, 0x01 ],
     [ 0x06, 0x04 ],
     [ 0x00, 0x07 ],
-  ], dump_vcd, test_verilog )
+  ], dump_vcd, test_verilog, line_trace=True )
 
 #-------------------------------------------------------------------------
 # test_large

@@ -19,7 +19,7 @@ class RegIncrNstagePRTL( Component ):
 
     # Instantiate the registered incrementers
 
-    s.reg_incrs = [ RegIncrRTL() for _ in xrange(nstages) ]
+    s.reg_incrs = [ RegIncrRTL() for _ in range(nstages) ]
 
     # Connect input port to first reg_incr in chain
 
