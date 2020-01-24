@@ -30,11 +30,6 @@ class RegIncrNstagePRTL( Component ):
     # code here to connect the stages together.
     # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-    # Connect reg_incr in chain
-
-    for i in range( nstages - 1 ):
-      connect( s.reg_incrs[i+1].in_, s.reg_incrs[i].out )
-
     # Connect last reg_incr in chain to output port
 
     connect( s.reg_incrs[-1].out, s.out )

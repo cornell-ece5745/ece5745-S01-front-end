@@ -34,10 +34,6 @@ class RegIncrPRTL( Component ):
     # combinational concurrent block here to model the incrementer logic.
     # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-    @s.update
-    def block2():
-      s.out = s.reg_out + b8(1)
-
   def line_trace( s ):
     return f"{s.in_} ({s.reg_out}) {s.out}"
 

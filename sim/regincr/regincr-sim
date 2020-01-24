@@ -48,9 +48,6 @@ model.elaborate()
 #
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-model.sverilog_translate_import = True
-model = TranslationImportPass()( model )
-
 # Apply the simulation pass to create a simulator
 
 model.apply( SimulationPass() )
