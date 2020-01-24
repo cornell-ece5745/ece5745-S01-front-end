@@ -15,37 +15,28 @@ rtl_language = 'pymtl'
 # This is the PyMTL wrapper for the corresponding Verilog RTL model.
 
 from pymtl3 import *
+from pymtl3.passes.backends.sverilog import ImportConfigs
 
-# class RegIncrVRTL( VerilogModel ):
-#
-#   # Constructor
-#
-#   def __init__( s ):
-#
-#     # Port-based interface
-#
-#     s.in_ = InPort  ( Bits(8) )
-#     s.out = OutPort ( Bits(8) )
-#
-#     # Verilog ports
-#
-#     s.set_ports({
-#       'clk'   : s.clk,
-#       'reset' : s.reset,
-#       'in'    : s.in_,
-#       'out'   : s.out,
-#     })
-#
-#   # Line tracing
-#
-#   def line_trace( s ):
-#     return "{} () {}".format( s.in_, s.out )
+class RegIncrVRTL( Component, Placeholder ):
+
+  # Constructor
+  def construct( s ):
+
+    # Port-based interface
+    s.in_ = InPort  ( Bits8 )
+    s.out = OutPort ( Bits8 )
+
+    from os import path
+    s.config_sverilog_import = ImportConfigs(
+      # The absolute path of the SVerilog file to be imported
+      vl_src = path.dirname(__file__) + '/RegIncrVRTL.v',
+    )
 
 # Import the appropriate version based on the rtl_language variable
 
-#if rtl_language == 'pymtl':
-from .RegIncrPRTL import RegIncrPRTL as RegIncrRTL
-#elif rtl_language == 'verilog':
-#  RegIncrRTL = RegIncrVRTL
-#else:
-#  raise Exception("Invalid RTL language!")
+if rtl_language == 'pymtl':
+  from .RegIncrPRTL import RegIncrPRTL as RegIncrRTL
+elif rtl_language == 'verilog':
+  RegIncrRTL = RegIncrVRTL
+else:
+  raise Exception("Invalid RTL language!")

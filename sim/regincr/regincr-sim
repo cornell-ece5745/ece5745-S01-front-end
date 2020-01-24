@@ -11,6 +11,7 @@ from pymtl3.passes                   import TracingConfigs
 from pymtl3.passes.backends.sverilog import TranslationImportPass
 
 # Hack to add project root to python path
+
 sim_dir = os.path.dirname( os.path.abspath( __file__ ) )
 while sim_dir:
   if os.path.exists( sim_dir + os.path.sep + ".pymtl_sim_root" ):
@@ -28,26 +29,29 @@ input_values = [ int(x,0) for x in sys.argv[1:] ]
 
 input_values.extend( [0, 0, 0] )
 
-# Create a simulator using simulation tool
+# Instantiate a 4-stage registered incrementer
 
 model = RegIncrNstageRTL( nstages=4 )
 model.config_tracing = TracingConfigs(
   tracing='vcd',
-  vcd_file_name="regincr-sim.vcd"
+  vcd_file_name="regincr-sim"
 )
+
+model.elaborate()
 
 # ''' SECTION TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
 # To translate the model to Verilog you need to add a line here like
 # this:
 #
-#  model.apply( SimulationPass() )
+#  model.sverilog_translate_import = True
+#  model = TranslationImportPass()( model )
 #
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-model.elaborate()
-
 model.sverilog_translate_import = True
 model = TranslationImportPass()( model )
+
+# Apply the simulation pass to create a simulator
 
 model.apply( SimulationPass() )
 
