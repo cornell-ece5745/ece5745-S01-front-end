@@ -5,11 +5,11 @@
 import collections
 import pytest
 
-from random           import sample
+from random             import sample
 
-from pymtl            import *
-from pclib.test       import run_test_vector_sim, mk_test_case_table
-from RegIncrNstageRTL import RegIncrNstageRTL
+from pymtl3             import *
+from pymtl3.stdlib.test import run_test_vector_sim
+from .RegIncrNstageRTL  import RegIncrNstageRTL
 
 #-------------------------------------------------------------------------
 # mk_test_vector_table

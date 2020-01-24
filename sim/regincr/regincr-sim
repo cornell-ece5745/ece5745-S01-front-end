@@ -3,9 +3,10 @@
 # regincr-sim <input-values>
 #=========================================================================
 
-from pymtl            import *
-from sys              import argv
-from RegIncrNstageRTL import RegIncrNstageRTL
+from pymtl3            import *
+from pymtl3.passes     import TracingConfigs
+from sys               import argv
+from RegIncrNstageRTL  import RegIncrNstageRTL
 
 # Get list of input values from command line
 
@@ -13,27 +14,29 @@ input_values = [ int(x,0) for x in argv[1:] ]
 
 # Add three zero values to end of list of input values
 
-input_values.extend( [0]*6 )
+input_values.extend( [0, 0, 0] )
 
 # Create a simulator using simulation tool
 
 model = RegIncrNstageRTL( nstages=4 )
-model.vcd_file = "regincr-4stage-sim.vcd"
+model.config_tracing = TracingConfigs(
+  tracing='vcd',
+  vcd_file_name="regincr-sim.vcd"
+)
 
 # ''' SECTION TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
 # To translate the model to Verilog you need to add a line here like
 # this:
 #
-#  model = TranslationTool( model )
+#  model.apply( SimulationPass() )
 #
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-model.elaborate()
-sim = SimulationTool( model )
+model.apply( SimulationPass() )
 
 # Reset simulator
 
-sim.reset()
+mode.sim_reset()
 
 # Apply input values and display output values
 
@@ -41,13 +44,13 @@ for input_value in input_values:
 
   # Write input value to input port
 
-  model.in_.value = input_value
+  model.in_ = b8(input_value)
 
   # Display line trace
 
-  sim.print_line_trace()
+  print( model.line_trace() )
 
   # Tick simulator one cycle
 
-  sim.cycle()
+  model.tick()
 

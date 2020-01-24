@@ -2,9 +2,9 @@
 # RegIncr_test
 #=========================================================================
 
-from pymtl      import *
-from pclib.test import run_test_vector_sim
-from RegIncrRTL import RegIncrRTL
+from pymtl3             import *
+from pymtl3.stdlib.test import run_test_vector_sim
+from .RegIncrRTL        import RegIncrRTL
 
 #-------------------------------------------------------------------------
 # test_small
