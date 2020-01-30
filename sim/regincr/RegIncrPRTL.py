@@ -6,6 +6,7 @@
 # finally written to the output port.
 
 from pymtl3 import *
+from pymtl3.passes.backends.sverilog import TranslationConfigs
 
 class RegIncrPRTL( Component ):
 
@@ -33,6 +34,15 @@ class RegIncrPRTL( Component ):
     # This model is incomplete. As part of the section you will insert a
     # combinational concurrent block here to model the incrementer logic.
     # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+    # Configuration
+
+    s.config_sverilog_translate = TranslationConfigs(
+      # Let --test-verilog option control whether we will translate PRTL
+      translate = False,
+      # What is the module name of the top level in the translated Verilog?
+      explicit_module_name = 'RegIncrRTL',
+    )
 
   def line_trace( s ):
     return f"{s.in_} ({s.reg_out}) {s.out}"
