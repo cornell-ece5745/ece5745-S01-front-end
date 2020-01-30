@@ -32,6 +32,8 @@ module RegIncrVRTL
   // combinational concurrent block here to model the incrementer logic.
   // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+  assign out = reg_out + 1;
+
 endmodule
 
 `endif /* REG_INCR_V */

@@ -4,6 +4,7 @@
 # Registered incrementer that is parameterized by the number of stages.
 
 from pymtl3      import *
+from pymtl3.passes.backends.sverilog import TranslationConfigs
 from .RegIncrRTL import RegIncrRTL
 
 class RegIncrNstagePRTL( Component ):
@@ -32,7 +33,19 @@ class RegIncrNstagePRTL( Component ):
 
     # Connect last reg_incr in chain to output port
 
+    for i in range( nstages - 1 ):
+      connect( s.reg_incrs[i+1].in_, s.reg_incrs[i].out )
+
     connect( s.reg_incrs[-1].out, s.out )
+
+    s.config_sverilog_translate = TranslationConfigs(
+      # Let --test-verilog option control whether we will translate PRTL.
+      # This allows us to run pure Python simulation.
+      translate = False,
+
+      # What is the module name of the top level in the translated Verilog?
+      explicit_module_name = f'RegIncr{nstages}stageRTL',
+    )
 
   # Line tracing
 

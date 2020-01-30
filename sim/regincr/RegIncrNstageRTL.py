@@ -15,7 +15,8 @@ rtl_language = 'pymtl'
 # This is the PyMTL wrapper for the corresponding Verilog RTL model.
 
 from pymtl3 import *
-from pymtl3.passes.backends.sverilog import ImportConfigs
+from pymtl3.passes.backends.sverilog import \
+    VerilogPlaceholderConfigs, TranslationConfigs
 
 class RegIncrNstageVRTL( Component, Placeholder ):
 
@@ -27,14 +28,19 @@ class RegIncrNstageVRTL( Component, Placeholder ):
     s.out = OutPort ( Bits8 )
 
     from os import path
-    s.config_sverilog_import = ImportConfigs(
+    s.config_placeholder = VerilogPlaceholderConfigs(
       # The absolute path of the SVerilog file to be imported
-      vl_src = path.dirname(__file__) + '/RegIncrNstageVRTL.v',
+      src_file = path.dirname(__file__) + '/RegIncrNstageVRTL.v',
 
-      # Add the parent diretory of `regincr` to the include search path
-      # This is because we assume include path relative to that directory
-      # during the `include in RegIncrNstageVRTL.v
-      vl_include = [ path.dirname(__file__) + '/..' ],
+      # What is the name of the top module to be imported?
+      # The inferred name of this specific component is
+      # RegIncrNstageVRLT__nstages__2, which unfortunately does not
+      # match the name we have in Verilog (because that is a parametrized
+      # module).
+      top_module = 'RegIncrNstageVRTL',
+    )
+    s.config_sverilog_translate = TranslationConfigs(
+      explicit_module_name = f'RegIncr{nstages}stageRTL',
     )
 
 # Import the appropriate version based on the rtl_language variable
