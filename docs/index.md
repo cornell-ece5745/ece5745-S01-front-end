@@ -176,7 +176,7 @@ increment operation. So for a PyMTL RTL implementation you should edit
 `RegIncrPRTL.py` to look as follows:
 
     from pymtl3 import *
-    from pymtl3.passes.backends.sverilog import TranslationConfigs
+    from pymtl3.passes.backends.verilog import TranslationConfigs
 
     class RegIncrPRTL( Model ):
 
@@ -214,7 +214,7 @@ increment operation. So for a PyMTL RTL implementation you should edit
         
         # Configuration
         
-        s.config_sverilog_translate = TranslationConfigs(
+        s.config_verilog_translate = TranslationConfigs(
           translate = False,
           explicit_module_name = 'RegIncrRTL',
         )
@@ -317,8 +317,8 @@ verilog RTL you can use the `--test-verilog` command line option:
 
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrRTL_test.py --test-verilog
-    % ls *.sv
-    % less RegIncrRTL.sv
+    % ls *.v
+    % less RegIncrRTL.v
 
 You should use `--test-verilog` regardless of whether or not you
 implemented your design using PyMTL RTL or Verilog RTL. Take a look at
@@ -346,7 +346,7 @@ a pipeline of registered incrementers. So for a PyMTL RTL implementation
 you should edit `RegIncrNstagePRTL.py` to look as follows:
 
     from pymtl3      import *
-    from pymtl3.passes.backends.sverilog import TranslationConfigs
+    from pymtl3.passes.backends.verilog import TranslationConfigs
     from .RegIncrRTL import RegIncrRTL
 
     class RegIncrNstagePRTL( Component ):
@@ -379,7 +379,7 @@ you should edit `RegIncrNstagePRTL.py` to look as follows:
         
         # Configurations
         
-        s.config_sverilog_translate = TranslationConfigs(
+        s.config_verilog_translate = TranslationConfigs(
           translate = False,
           explicit_module_name = f'RegIncr{nstages}stageRTL',
         )
@@ -467,14 +467,14 @@ And now let's run all of the tests both without and with translation:
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrNstageRTL_test.py -sv
     % pytest ../regincr/RegIncrNstageRTL_test.py --test-verilog
-    % ls *.sv
-    % less RegIncr4stageRTL.sv
+    % ls *.v
+    % less RegIncr4stageRTL.v
 
 If you are using Verilog RTL instead of PyMTL RTL, you might need to use
 this:
 
     % cd $TOPDIR/sim/build
-    % less RegIncr4stageRTL.sv
+    % less RegIncr4stageRTL.v
 
 Notice how we have generated a wrapper which picks a specific parameter
 value for this instance of the multi-stage registered incrementer.
@@ -508,9 +508,9 @@ RTL design.
     )
 
     model.elaborate()
-    model.apply( VerilogPlaceholderPass() )    # add these
-    model.sverilog_translate_import = True     # three lines
-    model = TranslationImportPass()( model )   # of code
+    model.apply( VerilogPlaceholderPass() )   # add these
+    model.verilog_translate_import = True     # three lines
+    model = TranslationImportPass()( model )  # of code
     model.apply( SimulationPass() )
 
 Once you have done this step, let's clean up our build directory, and
@@ -519,13 +519,13 @@ rerun the simulator.
     % cd $TOPDIR/sim/build
     % trash *
     % ../regincr/regincr-sim 0x10 0x20 0x30 0x40
-    % less RegIncr4stageRTL.sv
+    % less RegIncr4stageRTL.v
 
 If you are using Verilog RTL instead of PyMTL RTL, you might need to use
 this:
 
     % cd $TOPDIR/sim/build
-    % less RegIncr4stageRTL.sv
+    % less RegIncr4stageRTL.v
 
 We now have the Verilog RTL that we want push through the next step in the
 ASIC front-end flow.
@@ -562,7 +562,7 @@ representation. The elaborate command recursively resolves all of the
 module references starting from the top-level module, and also infers
 various registers and/or advanced data-path components.
 
-    dc_shell> analyze -format sverilog ../../sim/build/RegIncr4stageRTL.sv
+    dc_shell> analyze -format sverilog ../../sim/build/RegIncr4stageRTL.v
     dc_shell> elaborate RegIncr4stageRTL
 
 We can use the `check_design` command to make sure there are no obvious
