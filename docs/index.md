@@ -292,7 +292,7 @@ verilog RTL you can use the `--test-verilog` command line option:
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrRTL_test.py --test-verilog
     % ls *.v
-    % less RegIncrRTL__pickled.v
+    % less RegIncrRTL_noparam__pickled.v
 
 You should use `--test-verilog` regardless of whether or not you
 implemented your design using PyMTL RTL or Verilog RTL. Take a look at
