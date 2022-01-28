@@ -30,24 +30,24 @@ module RegIncrNstageVRTL
   assign reg_incr_out[0] = in_;
 
   // ''' SECTION TASK ''''''''''''''''''''''''''''''''''''''''''''''''''''
-  // This model is incomplete. As part of the tutorial you will insert
-  // code here to instantiate and connect the stages together.
+  // This model is incomplete. Uncomment the code to instantiate and
+  // connect the stages together.
   // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-  genvar i;
-  generate
-  for ( i = 0; i < nstages; i = i + 1 ) begin: gen
-
-    RegIncrVRTL reg_incr
-    (
-      .clk   (clk),
-      .reset (reset),
-      .in_   (reg_incr_out[i]),
-      .out   (reg_incr_out[i+1])
-    );
-
-  end
-  endgenerate
+  // genvar i;
+  // generate
+  // for ( i = 0; i < nstages; i = i + 1 ) begin: gen
+  //
+  //   RegIncrVRTL reg_incr
+  //   (
+  //     .clk   (clk),
+  //     .reset (reset),
+  //     .in_   (reg_incr_out[i]),
+  //     .out   (reg_incr_out[i+1])
+  //   );
+  //
+  // end
+  // endgenerate
 
   // Connect the last signal in the reg_incr_out signal array to the
   // output port of the module.
@@ -57,4 +57,3 @@ module RegIncrNstageVRTL
 endmodule
 
 `endif /* REG_INCR_NSTAGE_V */
-

@@ -6,7 +6,6 @@
 # finally written to the output port.
 
 from pymtl3 import *
-from pymtl3.passes.backends.verilog import TranslationConfigs
 
 class RegIncrPRTL( Component ):
 
@@ -31,21 +30,17 @@ class RegIncrPRTL( Component ):
         s.reg_out <<= s.in_
 
     # ''' SECTION TASK '''''''''''''''''''''''''''''''''''''''''''''''''''
-    # This model is incomplete. As part of the section you will insert a
-    # combinational concurrent block here to model the incrementer logic.
+    # This model is incomplete. Uncomment the combinational concurrent
+    # block and connection statement to model the incrementer logic.
     # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-    # Combinational logic
-
-    s.temp_wire = Wire( 8 )
-
-    @update
-    def block2():
-      s.temp_wire @= s.reg_out + 1
-
-    # Combinational logic
-
-    s.out //= s.temp_wire
+    # s.temp_wire = Wire( 8 )
+    #
+    # @update
+    # def block2():
+    #   s.temp_wire @= s.reg_out + 1
+    #
+    # s.out //= s.temp_wire
 
   def line_trace( s ):
     return f"{s.in_} ({s.reg_out}) {s.out}"
