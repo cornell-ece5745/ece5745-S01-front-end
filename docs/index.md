@@ -426,7 +426,7 @@ Let's re-run a single test and use line tracing to see the data moving
 through the pipeline:
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrNstageRTL_test.py -sv -k 3stage_small
+    % pytest ../regincr/RegIncrNstageRTL_test.py -sv -k 4stage_small
 
 And now let's run all of the tests both without and with translation:
 
