@@ -3,14 +3,16 @@ ECE 5745 Section 1: ASIC Flow Front-End
 ==========================================================================
 
  - Author: Christopher Batten
- - Date: January 23, 2020
+ - Date: January 27, 2021
 
 **Table of Contents**
 
  - Introduction
  - NanGate 45nm Standard-Cell Libraries
  - PyMTL-Based Testing, Simulation, Translation
+ - Using Synopsys VCS for 4-State RTL Simulation
  - Using Synopsys Design Compiler for Synthesis
+ - Using Synopsys VCS for Fast-Functional Gate-Level Simulation
 
 Introduction
 --------------------------------------------------------------------------
@@ -18,15 +20,16 @@ Introduction
 In this section, we will be discussing the front-end of the ASIC
 toolflow. More detailed tutorials will be posted on the public course
 website, but this section will at least give you a chance to edit some
-RTL and synthesize that to a gate-level netlist. The following diagram
-illustrates the four primary tools we will be using in ECE 5745 along
-with a few smaller secondary tools. Notice that the Synopsys and Cadence
-ASIC tools all require various views from the standard-cell library.
+RTL, synthesize that to a gate-level netlist, and then simulate that
+gate-level netlist. The following diagram illustrates the tool flow we
+will be using in ECE 5745. Notice that the Synopsys and Cadence ASIC
+tools all require various views from the standard-cell library which part
+of the ASIC design kit (ADK).
 
-![](assets/fig/asic-flow.png)
+![](assets/fig/asic-flow-front-end.png)
 
 The "front-end" of the flow is highlighted in red and refers to
-the PyMTL simulator and Synopsys DC:
+the PyMTL simulator, Synopsys DC, and Synopsys VCS:
 
  1. We use the PyMTL framework to test, verify, and evaluate the
     execution time (in cycles) of our design. This part of the flow is
@@ -47,24 +50,28 @@ the PyMTL simulator and Synopsys DC:
     gate-level netlist and timing, and this `.ddc` file can be inspected
     using Synopsys Design Vision (DV).
 
+ 2. We use Synopsys VCS for RTL and gate-level simulation. PyMTL uses
+    two-state RTL simulation meaning every wire will be either a 0 (logic
+    low) or 1 (logic high). Synopsys VCS uses four-state RTL simulation
+    meaning every wire will be either a 0 (logic low), 1 (logic high), X
+    (unknown), or Z (floating). Four-state RTL simulation can identify
+    different kinds of bugs than two-state simulation such as bugs due to
+    uninitialized state. Gate-level simulation involves simulating every
+    standard-cell gate and helps verify that the Verilog gate-level
+    netlist is functionally correct.
+
 Extensive documentation is provided by Synopsys and Cadence. We have
 organized this documentation and made it available to you on the [public
 course webpage](http://www.csl.cornell.edu/courses/ece5745/syndocs). The
-username/password was distributed during lecture.
+username/password is on Canvas.
 
-The first step is to start MobaXterm. From the _Start_ menu, choose
-_MobaXterm Educational Edition > MobaXterm Educational Edition_. Then
-double click on _ecelinux.ece.cornell.edu_ under _Saved sessions_ in
-MobaXterm. Log in using your NetID and password. Click _Yes_ when asked
-if you want to save your password. This will make it easier to open
-multiple terminals if you need to.
-
-Once you are at the `ecelinux` prompt, source the setup script, clone
-this repository from GitHub, and define an environment variable to keep
-track of the top directory for the project.
+The first step is to start access `ecelinux` using X2Go and then open a
+terminal. Once you are at the `ecelinux` prompt, source the setup script,
+clone this repository from GitHub, and define an environment variable to
+keep track of the top directory for the project.
 
     % source setup-ece5745.sh
-    % mkdir $HOME/ece5745
+    % mkdir -p $HOME/ece5745
     % cd $HOME/ece5745
     % git clone https://github.com/cornell-ece5745/ece5745-S01-front-end
     % cd ece5745-S01-front-end
@@ -107,9 +114,9 @@ Verilog behavioral specification for the 3-input NAND cell.
 
 Note that the Verilog implementation of the 3-input NAND cell looks
 nothing like the Verilog we used in ECE 4750. This cell is implemented
-using a Verilog primitive gate (i.e., `nand`), it includes a delay value
-of one delay unit (i.e., `#1`), and it includes a `specify` block which
-is used for advanced gate-level simulation with back-annotated delays.
+using three Verilog primitive gates (i.e., two `and` gates and one `not`
+gate), and it includes a `specify` block which is used for advanced
+gate-level simulation with back-annotated delays.
 
 Finally, let's look at an abstract view of the timing and power of the
 3-input NAND cell suitable for use by the ASIC flow. This abstract view
@@ -160,7 +167,7 @@ your RTL design. For example, this is what it would look like to use
 
 Now let's run all of the tests for the registered incrementer:
 
-    % mkdir $TOPDIR/sim/build
+    % mkdir -p $TOPDIR/sim/build
     % cd $TOPDIR/sim/build
     % pytest ../regincr
 
@@ -170,15 +177,13 @@ start by focusing on the basic registered incrementer module.
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrRTL_test.py
 
-**To Do On Your Own:** Use `geany` or your favorite text editor to open
-the implementation and add the actual combinational logic for the
-increment operation. So for a PyMTL RTL implementation you should edit
-`RegIncrPRTL.py` to look as follows:
+Use `geany` or your favorite text editor to open the implementation and
+uncomment the actual combinational logic for the increment operation. So
+a PyMTL RTL implementation should look as follows:
 
     from pymtl3 import *
-    from pymtl3.passes.backends.verilog import TranslationConfigs
 
-    class RegIncrPRTL( Model ):
+    class RegIncrPRTL( Component ):
 
       # Constructor
 
@@ -191,39 +196,31 @@ increment operation. So for a PyMTL RTL implementation you should edit
 
         # Sequential logic
 
-        s.reg_out = Wire( Bits8 )
+        s.reg_out = Wire( 8 )
 
-        @s.update_ff
+        @update_ff
         def block1():
           if s.reset:
-            s.reg_out <<= b8(0)
+            s.reg_out <<= 0
           else:
             s.reg_out <<= s.in_
 
         # Combinational logic
 
-        s.temp_wire = Wire( Bits8 )
+        s.temp_wire = Wire( 8 )
 
-        @s.update
+        @update
         def block2():
-          s.temp_wire = s.reg_out + b8(1)
+          s.temp_wire @= s.reg_out + 1
 
         # Combinational logic
 
         s.out //= s.temp_wire
-        
-        # Configuration
-        
-        s.config_verilog_translate = TranslationConfigs(
-          translate = False,
-          explicit_module_name = 'RegIncrRTL',
-        )
 
       def line_trace( s ):
-        return "{} ({}) {}".format( s.in_, s.reg_out, s.out )
+        return f"{s.in_} ({s.reg_out}) {s.out}"
 
-For a Verilog RTL implementation you should edit `RegIncrVRTL.v` to look
-as follows:
+A Verilog RTL implementation should look as follows:
 
     `ifndef REG_INCR_V
     `define REG_INCR_V
@@ -281,35 +278,12 @@ also dump VCD files for waveform debugging with `gtkwave`:
 
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrRTL_test.py -sv --dump-vcd
-    % gtkwave regincr.RegIncrRTL_test.test_small.vcd
+    % gtkwave regincr.RegIncrRTL_test__test_small.vcd
 
-If you are using Verilog RTL instead of PyMTL RTL, you might need to use
-this:
-
-    % cd $TOPDIR/sim/build
-    % gtkwave RegIncrRTL.verilator1.vcd
-
-**To Do On Your Own:** Add some more tests by using `geany` or your
-favorite text editor to open the test script named `RegIncrRTL_test.py`.
-PyMTL provides lots of helper utilities to make testing more productive.
-For example, the `run_test_vector_sim` helper function makes it easy to
-test a small RTL component using a sequence of test inputs and reference
-outputs. Add a new test case for larger inputs by adding the following to
-the end of the test script:
-
-    def test_large( dump_vcd, test_verilog ):
-      run_test_vector_sim( RegIncrRTL(), [
-        ('in_   out*'),
-        [ 0xa0, '?'  ],
-        [ 0xb3, 0xa1 ],
-        [ 0xc6, 0xb4 ],
-        [ 0x00, 0xc7 ],
-      ], dump_vcd, test_verilog )
-
-Now rerun the tests:
+If you are using Verilog RTL instead of PyMTL RTL, you need to use this:
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrRTL_test.py -sv
+    % gtkwave regincr.RegIncrRTL_test__test_small_top.verilator1.vcd
 
 PyMTL supports automatically translating PyMTL RTL into Verilog RTL so we
 can then use that Verilog RTL with the ASIC flow. To test the translated
@@ -318,7 +292,7 @@ verilog RTL you can use the `--test-verilog` command line option:
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrRTL_test.py --test-verilog
     % ls *.v
-    % less RegIncrRTL.v
+    % less RegIncrRTL__pickled.v
 
 You should use `--test-verilog` regardless of whether or not you
 implemented your design using PyMTL RTL or Verilog RTL. Take a look at
@@ -340,12 +314,12 @@ incrementer.
     % cd $TOPDIR/sim/build
     % pytest ../regincr/RegIncrNstageRTL_test.py
 
-**To Do On Your Own:** Use geany or your favorite text editor to open the
-implementation and add the actual static elabroation logic to instantiate
-a pipeline of registered incrementers. So for a PyMTL RTL implementation
-you should edit `RegIncrNstagePRTL.py` to look as follows:
+Use geany or your favorite text editor to open the implementation and
+uncomment the static elabroation logic to instantiate a pipeline of
+registered incrementers. So a PyMTL RTL implementation should look as
+follows:
 
-    from pymtl3      import *
+    from pymtl3 import *
     from pymtl3.passes.backends.verilog import TranslationConfigs
     from .RegIncrRTL import RegIncrRTL
 
@@ -376,13 +350,6 @@ you should edit `RegIncrNstagePRTL.py` to look as follows:
         # Connect last reg_incr in chain to output port
 
         connect( s.reg_incrs[-1].out, s.out )
-        
-        # Configurations
-        
-        s.config_verilog_translate = TranslationConfigs(
-          translate = False,
-          explicit_module_name = f'RegIncr{nstages}stageRTL',
-        )
 
       # Line tracing
 
@@ -390,8 +357,7 @@ you should edit `RegIncrNstagePRTL.py` to look as follows:
       pipe_str = '|'.join([ str(reg_incr.out) for reg_incr in s.reg_incrs ])
       return f"{s.in_} ({pipe_str}) {s.out}"
 
-For a Verilog RTL implementation you should edit `RegIncrNstageVRTL.py`
-to look as follows:
+So a Verilog RTL implementation should look as follows:
 
     `ifndef REG_INCR_NSTAGE_V
     `define REG_INCR_NSTAGE_V
@@ -468,16 +434,20 @@ And now let's run all of the tests both without and with translation:
     % pytest ../regincr/RegIncrNstageRTL_test.py -sv
     % pytest ../regincr/RegIncrNstageRTL_test.py --test-verilog
     % ls *.v
-    % less RegIncr4stageRTL.v
-
-If you are using Verilog RTL instead of PyMTL RTL, you might need to use
-this:
-
-    % cd $TOPDIR/sim/build
-    % less RegIncr4stageRTL.v
+    % less RegIncr4stageRTL__pickled.v
 
 Notice how we have generated a wrapper which picks a specific parameter
 value for this instance of the multi-stage registered incrementer.
+
+Finally, we are going to run all of the tests with the `--dump-vtb`
+option which will generate a Verilog test-bench that can then be used for
+RTL and gate-level simulation.
+
+    % cd $TOPDIR/sim/build
+    % pytest ../regincr/RegIncrNstageRTL_test.py --test-verilog --dump-vtb
+    % ls *.v
+    % less RegIncr4stageRTL_test_4stage_random_tb.v
+    % less RegIncr4stageRTL_test_4stage_random_tb.v.cases
 
 ### Simulate Multi-Stage Registered Incrementer
 
@@ -485,50 +455,60 @@ Test scripts are great for verification, but when we want to push a
 design through the flow we usually want to use a simulator to drive that
 process. A simulator is meant for evaluting the area, energy, and
 performance of a design as opposed to verification. We have included a
-simple simulator called `reg-incr-sim` which takes a list of values on
-the command line and sends these values through the pipeline. Let's see
-the simulator in action:
+simple simulator called `regincr-sim` which takes a list of values on the
+command line and sends these values through the pipeline. Let's see the
+simulator in action:
 
     % cd $TOPDIR/sim/build
     % ../regincr/regincr-sim 0x10 0x20 0x30 0x40
-    
-If you are using Verilog for RTL design, you might need to complete the
-following task first before calling the simulator.
+    % less RegIncr4stageRTL__pickled.v
 
-**To Do On Your Own:** Modify the simulator to also do translation. Use
-`geany` or your favorite text editor to add some code to use the
-`TranslationImportPass` after elaborating the design. Note that you need
-to do this step regardless of whether you are using PyMTL or Verilog for
-RTL design.
+We now have the Verilog RTL that we want push through the next step in
+the ASIC front-end flow.
 
-    model = RegIncrNstageRTL( nstages=4 )
-    model.config_tracing = TracingConfigs(
-      tracing='vcd',
-      vcd_file_name="regincr-sim"
-    )
+Using Synopsys VCS for 4-State RTL Simulation
+--------------------------------------------------------------------------
 
-    model.elaborate()
-    model.apply( VerilogPlaceholderPass() )   # add these
-    model.verilog_translate_import = True     # three lines
-    model = TranslationImportPass()( model )  # of code
-    model.apply( SimulationPass() )
+Recall that PyMTL3 simulation of PyMTL3 RTL or Verilog RTL uses two-state
+simulation. To help catch bugs due to uninitialized state (and also just
+to help verify the design using another Verilog simulator), we can use
+Synopsys VCS for four-state RTL simulation. This simulator will make use
+of the Verilog test-bench generated by the `--dump-vtb` option from
+earlier (although we could also write our own Verilog test-bench from
+scratch). Here is how to run VCS for RTL simulation:
 
-Once you have done this step, let's clean up our build directory, and
-rerun the simulator.
+    % mkdir -p $TOPDIR/asic/synopsys-vcs-rtl-sim
+    % cd $TOPDIR/asic/synopsys-vcs-rtl-sim
+    % vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ns \
+        +incdir+../../sim/build \
+        +vcs+dumpvars+vcs-rtl-sim.vcd \
+        -top RegIncr4stageRTL_tb \
+        ../../sim/build/RegIncr4stageRTL__pickled.v \
+        ../../sim/build/RegIncr4stageRTL_test_4stage_random_tb.v
 
-    % cd $TOPDIR/sim/build
-    % trash *
-    % ../regincr/regincr-sim 0x10 0x20 0x30 0x40
-    % less RegIncr4stageRTL.v
+This is a pretty long command line! We will go over some of these options
+in the discussion section. However, we also provide you a shell script
+that has the command ready for you to use.
 
-If you are using Verilog RTL instead of PyMTL RTL, you might need to use
-this:
+    % cd $TOPDIR/asic/synopsys-vcs-rtl-sim
+    % source run.sh
+    % ls
 
-    % cd $TOPDIR/sim/build
-    % less RegIncr4stageRTL.v
+You should see a `simv` binary which is the compiled RTL simulator which
+you can run like this:
 
-We now have the Verilog RTL that we want push through the next step in the
-ASIC front-end flow.
+    % cd $TOPDIR/asic/synopsys-vcs-rtl-sim
+    % ./simv
+
+It should pass the test. Now let's look at the resulting waveforms.
+
+    % gtkwave vcs-rtl-sim.vcd
+
+Browse the signal hierarchy and view the waveforms for one of the four
+registered incrementers. Note how the signals are initialized to X and
+only become 0 or 1 after a few cycles once we come out of reset. If we
+improperly used an initialized value then we would see X-propagation
+which would hopefully cause a failing test case.
 
 Using Synopsys Design Compiler for Synthesis
 --------------------------------------------------------------------------
@@ -543,8 +523,8 @@ adder, or even more advanced parallel-prefix adders.
 We start by creating a subdirectory for our work, and then launching
 Synopsys DC.
 
-    % mkdir $TOPDIR/asic/synopsys-dc
-    % cd $TOPDIR/asic/synopsys-dc
+    % mkdir -p $TOPDIR/asic/synopsys-dc-synth
+    % cd $TOPDIR/asic/synopsys-dc-synth
     % dc_shell-xg-t
 
 We need to set two variables before starting to work in Synopsys DC.
@@ -562,7 +542,7 @@ representation. The elaborate command recursively resolves all of the
 module references starting from the top-level module, and also infers
 various registers and/or advanced data-path components.
 
-    dc_shell> analyze -format sverilog ../../sim/build/RegIncr4stageRTL.v
+    dc_shell> analyze -format sverilog ../../sim/build/RegIncr4stageRTL__pickled.v
     dc_shell> elaborate RegIncr4stageRTL
 
 We can use the `check_design` command to make sure there are no obvious
@@ -652,14 +632,65 @@ also to open a gave-level schematic of just the critical path.
  - Select the left-most bar in the histogram to see list of most critical paths
  - Right click first path (the critical path) and choose _Path Schematic_
 
-**To-Do On Your Own:** Push the multi-stage registered incrementer
-through the flow again, but this type use a more faster clock constraint.
-This will force the tools to be more agress as they attempt to "meet
-timing". Try using a clock constraint of 0.3ns instead of 1ns. Use
-`report_resources` to determine what kind of adder microarchitecture the
-synthesis tool has chosen. Use `report_timing` to see if the tool is able
-to generate a gate-level netlist that can really run at 333MHz. Use
-`report_area` to compare the area of the design with the 0.3ns clock
-constraint to the design with the 1ns clock constraint. Use Synopsys DV
-to visualize the improved adder microarchitecture.
+Using Synopsys VCS for Fast-Functional Gate-Level Simulation
+--------------------------------------------------------------------------
+
+Good ASIC designers are always paranoid and _never_ trust their tools.
+How do we know that the synthesized gate-level netlist is correct? One
+way we can check is to rerun our test suite on the gate-level model. We
+can do this using Synopsys VCS for fast-functional gatel-level
+simulation. Fast-function refers to the fact that this simulation will
+not take account any of the gate delays. All gates will take zero time
+and all signals will still change on the rising clock edge just like in
+RTL simulation. Here is how to run VCS for RTL simulation:
+
+    % cd $TOPDIR/asic/synopsys-vcs-ffgl-sim
+    % vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ns \
+        +delay_mode_zero \
+        +incdir+../../sim/build \
+        +vcs+dumpvars+vcs-rtl-sim.vcd \
+        -top RegIncr4stageRTL_tb \
+        $ECE5745_STDCELLS/stdcells.v \
+        ../synopsys-dc-synth/post-synth.v \
+        ../../sim/build/RegIncr4stageRTL_test_4stage_random_tb.v
+
+This is a pretty long command line! So we provide you a shell script that
+has the command ready for you to use.
+
+    % cd $TOPDIR/asic/synopsys-vcs-ffgl-sim
+    % source run.sh
+
+You should see a `simv` binary which is the compiled RTL simulator which
+you can run like this:
+
+    % cd $TOPDIR/asic/synopsys-vcs-rtl-sim
+    % ./simv
+
+It should pass the test. Now let's look at the resulting waveforms.
+
+    % gtkwave vcs-rtl-sim.vcd
+
+Browse the signal hierarchy and display all the waveforms for a subset of
+the gate-level netlist using these steps:
+
+ - Expand out the signal tree until you find an _add_ module
+ - Right click on the _add_ module and choose _Recurse Import > Append_
+
+Notice how we can see all of the single-bit signals corresponding to each
+gate in the gate-level netlist, and how these signals all change on the
+rising clock edge without any delays.
+
+To-Do On Your Own
+--------------------------------------------------------------------------
+
+If you have time, push the multi-stage registered incrementer through the
+flow again, but this type use a faster clock constraint. This will force
+the tools to be more agress as they attempt to "meet timing". Try using a
+clock constraint of 0.3ns instead of 1ns. Use `report_resources` to
+determine what kind of adder microarchitecture the synthesis tool has
+chosen. Use `report_timing` to see if the tool is able to generate a
+gate-level netlist that can really run at 333MHz. Use `report_area` to
+compare the area of the design with the 0.3ns clock constraint to the
+design with the 1ns clock constraint. Use Synopsys DV to visualize the
+improved adder microarchitecture.
 
