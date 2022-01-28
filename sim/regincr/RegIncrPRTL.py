@@ -21,12 +21,12 @@ class RegIncrPRTL( Component ):
 
     # Sequential logic
 
-    s.reg_out = Wire( Bits8 )
+    s.reg_out = Wire( 8 )
 
-    @s.update_ff
+    @update_ff
     def block1():
       if s.reset:
-        s.reg_out <<= b8(0)
+        s.reg_out <<= 0
       else:
         s.reg_out <<= s.in_
 
@@ -35,14 +35,17 @@ class RegIncrPRTL( Component ):
     # combinational concurrent block here to model the incrementer logic.
     # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-    # Configuration
+    # Combinational logic
 
-    s.config_verilog_translate = TranslationConfigs(
-      # Let --test-verilog option control whether we will translate PRTL
-      translate = False,
-      # What is the module name of the top level in the translated Verilog?
-      explicit_module_name = 'RegIncrRTL',
-    )
+    s.temp_wire = Wire( 8 )
+
+    @update
+    def block2():
+      s.temp_wire @= s.reg_out + 1
+
+    # Combinational logic
+
+    s.out //= s.temp_wire
 
   def line_trace( s ):
     return f"{s.in_} ({s.reg_out}) {s.out}"
