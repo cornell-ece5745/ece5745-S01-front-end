@@ -13,6 +13,10 @@ class RegIncrPRTL( Component ):
 
   def construct( s ):
 
+    # If translated into Verilog, we use the explicit name
+
+    s.set_metadata( VerilogTranslationPass.explicit_module_name, 'RegIncrRTL' )
+
     # Port-based interface
 
     s.in_ = InPort  ( Bits8 )
