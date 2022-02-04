@@ -1,5 +1,5 @@
 
-vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ns \
+vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ps \
   +incdir+../../sim/build \
   +vcs+dumpvars+vcs-rtl-sim.vcd \
   -top RegIncr4stageRTL_tb \

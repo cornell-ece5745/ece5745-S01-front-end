@@ -31,34 +31,34 @@ of the ASIC design kit (ADK).
 The "front-end" of the flow is highlighted in red and refers to
 the PyMTL simulator, Synopsys DC, and Synopsys VCS:
 
- 1. We use the PyMTL framework to test, verify, and evaluate the
-    execution time (in cycles) of our design. This part of the flow is
-    very similar to the flow used in ECE 4750. Note that we can write our
-    RTL models in either PyMTL or Verilog. Once we are sure our design is
-    working correctly, we can then start to push the design through the
-    flow. The ASIC flow requires Verilog RTL as an input, so we can use
-    PyMTL's automatic translation tool to translate PyMTL RTL models into
-    Verilog RTL.
+ - We use the PyMTL framework to test, verify, and evaluate the execution
+   time (in cycles) of our design. This part of the flow is very similar
+   to the flow used in ECE 4750. Note that we can write our RTL models in
+   either PyMTL or Verilog. Once we are sure our design is working
+   correctly, we can then start to push the design through the flow. The
+   ASIC flow requires Verilog RTL as an input, so we can use PyMTL's
+   automatic translation tool to translate PyMTL RTL models into Verilog
+   RTL.
 
- 2. We use Synopsys Design Compiler (DC) to synthesize our design, which
-    means to transform the Verilog RTL model into a Verilog gate-level
-    netlist where all of the gates are selected from the standard-cell
-    library. We need to provide Synopsys DC with abstract logical and
-    timing views of the standard-cell library in `.db` format. In
-    addition to the Verilog gate-level netlist, Synopsys DC can also
-    generate a `.ddc` file which contains information about the
-    gate-level netlist and timing, and this `.ddc` file can be inspected
-    using Synopsys Design Vision (DV).
+ - We use Synopsys Design Compiler (DC) to synthesize our design, which
+   means to transform the Verilog RTL model into a Verilog gate-level
+   netlist where all of the gates are selected from the standard-cell
+   library. We need to provide Synopsys DC with abstract logical and
+   timing views of the standard-cell library in `.db` format. In addition
+   to the Verilog gate-level netlist, Synopsys DC can also generate a
+   `.ddc` file which contains information about the gate-level netlist
+   and timing, and this `.ddc` file can be inspected using Synopsys
+   Design Vision (DV).
 
- 2. We use Synopsys VCS for RTL and gate-level simulation. PyMTL uses
-    two-state RTL simulation meaning every wire will be either a 0 (logic
-    low) or 1 (logic high). Synopsys VCS uses four-state RTL simulation
-    meaning every wire will be either a 0 (logic low), 1 (logic high), X
-    (unknown), or Z (floating). Four-state RTL simulation can identify
-    different kinds of bugs than two-state simulation such as bugs due to
-    uninitialized state. Gate-level simulation involves simulating every
-    standard-cell gate and helps verify that the Verilog gate-level
-    netlist is functionally correct.
+ - We use Synopsys VCS for RTL and gate-level simulation. PyMTL uses
+   two-state RTL simulation meaning every wire will be either a 0 (logic
+   low) or 1 (logic high). Synopsys VCS uses four-state RTL simulation
+   meaning every wire will be either a 0 (logic low), 1 (logic high), X
+   (unknown), or Z (floating). Four-state RTL simulation can identify
+   different kinds of bugs than two-state simulation such as bugs due to
+   uninitialized state. Gate-level simulation involves simulating every
+   standard-cell gate and helps verify that the Verilog gate-level
+   netlist is functionally correct.
 
 Extensive documentation is provided by Synopsys and Cadence. We have
 organized this documentation and made it available to you on the [public
@@ -479,7 +479,7 @@ scratch). Here is how to run VCS for RTL simulation:
 
     % mkdir -p $TOPDIR/asic/synopsys-vcs-rtl-sim
     % cd $TOPDIR/asic/synopsys-vcs-rtl-sim
-    % vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ns \
+    % vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ps \
         +incdir+../../sim/build \
         +vcs+dumpvars+vcs-rtl-sim.vcd \
         -top RegIncr4stageRTL_tb \
@@ -639,16 +639,16 @@ Good ASIC designers are always paranoid and _never_ trust their tools.
 How do we know that the synthesized gate-level netlist is correct? One
 way we can check is to rerun our test suite on the gate-level model. We
 can do this using Synopsys VCS for fast-functional gatel-level
-simulation. Fast-function refers to the fact that this simulation will
-not take account any of the gate delays. All gates will take zero time
-and all signals will still change on the rising clock edge just like in
-RTL simulation. Here is how to run VCS for RTL simulation:
+simulation. _Fast-functional_ refers to the fact that this simulation
+will not take account any of the gate delays. All gates will take zero
+time and all signals will still change on the rising clock edge just like
+in RTL simulation. Here is how to run VCS for RTL simulation:
 
     % cd $TOPDIR/asic/synopsys-vcs-ffgl-sim
-    % vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ns \
+    % vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ps \
         +delay_mode_zero \
         +incdir+../../sim/build \
-        +vcs+dumpvars+vcs-rtl-sim.vcd \
+        +vcs+dumpvars+vcs-ffgl-sim.vcd \
         -top RegIncr4stageRTL_tb \
         $ECE5745_STDCELLS/stdcells.v \
         ../synopsys-dc-synth/post-synth.v \
@@ -663,12 +663,13 @@ has the command ready for you to use.
 You should see a `simv` binary which is the compiled RTL simulator which
 you can run like this:
 
-    % cd $TOPDIR/asic/synopsys-vcs-rtl-sim
+    % cd $TOPDIR/asic/synopsys-vcs-ffgl-sim
     % ./simv
 
 It should pass the test. Now let's look at the resulting waveforms.
 
-    % gtkwave vcs-rtl-sim.vcd
+    % cd $TOPDIR/asic/synopsys-vcs-ffgl-sim
+    % gtkwave vcs-ffgl-sim.vcd
 
 Browse the signal hierarchy and display all the waveforms for a subset of
 the gate-level netlist using these steps:

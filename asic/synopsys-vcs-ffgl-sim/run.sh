@@ -1,5 +1,5 @@
 
-vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ns \
+vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ps \
   +delay_mode_zero \
   +incdir+../../sim/build \
   +vcs+dumpvars+vcs-ffgl-sim.vcd \
