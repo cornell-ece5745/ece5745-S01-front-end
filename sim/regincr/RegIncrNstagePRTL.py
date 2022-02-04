@@ -13,6 +13,11 @@ class RegIncrNstagePRTL( Component ):
 
   def construct( s, nstages=2 ):
 
+    # If translated into Verilog, we use the explicit name
+
+    s.set_metadata( VerilogTranslationPass.explicit_module_name,
+                    f"RegIncr{nstages}stageRTL" )
+
     # Port-based interface
 
     s.in_ = InPort  ( Bits8 )
@@ -37,11 +42,6 @@ class RegIncrNstagePRTL( Component ):
     # Connect last reg_incr in chain to output port
 
     connect( s.reg_incrs[-1].out, s.out )
-
-    # If translated into Verilog, we use the explicit name
-
-    s.set_metadata( VerilogTranslationPass.explicit_module_name,
-                    f"RegIncr{nstages}stageRTL" )
 
   # Line tracing
 

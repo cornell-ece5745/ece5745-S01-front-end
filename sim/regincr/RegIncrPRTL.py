@@ -6,6 +6,7 @@
 # finally written to the output port.
 
 from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
 
 class RegIncrPRTL( Component ):
 
@@ -15,7 +16,8 @@ class RegIncrPRTL( Component ):
 
     # If translated into Verilog, we use the explicit name
 
-    s.set_metadata( VerilogTranslationPass.explicit_module_name, 'RegIncrRTL' )
+    s.set_metadata( VerilogTranslationPass.explicit_module_name,
+                    'RegIncrRTL' )
 
     # Port-based interface
 
