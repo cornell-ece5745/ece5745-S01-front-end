@@ -3,7 +3,7 @@ ECE 5745 Section 1: ASIC Flow Front-End
 ==========================================================================
 
  - Author: Christopher Batten
- - Date: January 27, 2021
+ - Date: January 27, 2023
 
 **Table of Contents**
 
@@ -31,14 +31,11 @@ of the ASIC design kit (ADK).
 The "front-end" of the flow is highlighted in red and refers to
 the PyMTL simulator, Synopsys DC, and Synopsys VCS:
 
- - We use the PyMTL framework to test, verify, and evaluate the execution
-   time (in cycles) of our design. This part of the flow is very similar
-   to the flow used in ECE 4750. Note that we can write our RTL models in
-   either PyMTL or Verilog. Once we are sure our design is working
-   correctly, we can then start to push the design through the flow. The
-   ASIC flow requires Verilog RTL as an input, so we can use PyMTL's
-   automatic translation tool to translate PyMTL RTL models into Verilog
-   RTL.
+ - We write our RTL models in Verilog, and we use the PyMTL framework to
+   test, verify, and evaluate the execution time (in cycles) of our
+   design. This part of the flow is very similar to the flow used in ECE
+   4750. Once we are sure our design is working correctly, we can then
+   start to push the design through the flow.
 
  - We use Synopsys Design Compiler (DC) to synthesize our design, which
    means to transform the Verilog RTL model into a Verilog gate-level
@@ -50,31 +47,35 @@ the PyMTL simulator, Synopsys DC, and Synopsys VCS:
    and timing, and this `.ddc` file can be inspected using Synopsys
    Design Vision (DV).
 
- - We use Synopsys VCS for RTL and gate-level simulation. PyMTL uses
-   two-state RTL simulation meaning every wire will be either a 0 (logic
-   low) or 1 (logic high). Synopsys VCS uses four-state RTL simulation
-   meaning every wire will be either a 0 (logic low), 1 (logic high), X
-   (unknown), or Z (floating). Four-state RTL simulation can identify
-   different kinds of bugs than two-state simulation such as bugs due to
-   uninitialized state. Gate-level simulation involves simulating every
-   standard-cell gate and helps verify that the Verilog gate-level
-   netlist is functionally correct.
+ - We use Synopsys VCS for RTL and gate-level simulation. PyMTL uses the
+   Verilator two-state RTL simulator meaning every wire will be either a
+   0 (logic low) or 1 (logic high). Synopsys VCS uses four-state RTL
+   simulation meaning every wire will be either a 0 (logic low), 1 (logic
+   high), X (unknown), or Z (floating). Four-state RTL simulation can
+   identify different kinds of bugs than two-state simulation such as
+   bugs due to uninitialized state. Gate-level simulation involves
+   simulating every standard-cell gate and helps verify that the Verilog
+   gate-level netlist is functionally correct.
 
 Extensive documentation is provided by Synopsys and Cadence. We have
-organized this documentation and made it available to you on the [public
-course webpage](http://www.csl.cornell.edu/courses/ece5745/syndocs). The
-username/password is on Canvas.
+organized this documentation and made it available to you on the Canvas
+course page:
 
-The first step is to start access `ecelinux` using X2Go and then open a
-terminal. Once you are at the `ecelinux` prompt, source the setup script,
-clone this repository from GitHub, and define an environment variable to
-keep track of the top directory for the project.
+ - <https://www.csl.cornell.edu/courses/ece5745/asicdocs>
+
+The first step is to start access `ecelinux`. You can use VS Code for
+working at the command line, but you will also need to a remote access
+option that supports Lunix applications with a GUI such as X2Go,
+MobaXterm, or Mac Terminal with XQuartz. Once you are at the `ecelinux`
+prompt, source the setup script, clone this repository from GitHub, and
+define an environment variable to keep track of the top directory for the
+project.
 
     % source setup-ece5745.sh
     % mkdir -p $HOME/ece5745
     % cd $HOME/ece5745
-    % git clone https://github.com/cornell-ece5745/ece5745-S01-front-end
-    % cd ece5745-S01-front-end
+    % git clone https://github.com/cornell-ece5745/ece5745-S01-front-end sec1
+    % cd sec1
     % TOPDIR=$PWD
 
 NanGate 45nm Standard-Cell Libraries
@@ -93,16 +94,22 @@ representative enough to provide reasonable area, energy, and timing
 estimates for teaching purposes. All of the files associated with this
 standard cell library are located in the `$ECE5745_STDCELLS` directory.
 
-Let's take a look at some layout for some cells.
+Let's first look at the data book which is on the Canvas course page:
+
+ - <https://web.csl.cornell.edu/courses/ece5745/resources/nangate-freepdk45nm-stdcell-databook.pdf>
+
+Scroll through the PDF and find the entry for the NAND3_X1 cell (it is on
+page 104). The data book provides information on the standard cell's
+logic function, delay, area, and power consumption. Let's take a look at
+the layout for the same cell.
 
     % klayout -l $ECE5745_STDCELLS/klayout.lyp $ECE5745_STDCELLS/stdcells.gds
 
-Let's look at a 3-input NAND cell, find the NAND3_X1 cell in the
-left-hand cell list, and then choose _Display > Show as New Top_ from the
-menu. We will learn more about layout and how this layout corresponds to
-a static CMOS circuit later in the course. The key point is that the
-layout for the standard cells are the basic building blocks that we will
-be using to create our ASIC chips.
+Find the NAND3_X1 cell in the left-hand cell list, and then choose
+_Display > Show as New Top_ from the menu. We will learn more about
+layout and how this layout corresponds to a static CMOS circuit later in
+the course. The key point is that the layout for the standard cells are
+the basic building blocks that we will be using to create our ASIC chips.
 
 The Synopsys and Cadence tools do not actually use this layout directly;
 it is actually _too_ detailed. Instead these tools use abstract views of
@@ -139,29 +146,9 @@ the following four-stage registered incrementer:
 We will take an incremental design approach. We will start by
 implementing and testing a single registered incrementer, and then we
 will write a generic multi-stage registered incrementer. For this section
-(and indeed the entire course) your test harnesses, simulation drivers,
-function-level models, and cycle-level models will all be written in
-PyMTL. However, you are free to do your actual RTL design work in either
-PyMTL or Verilog. Prof. Batten will now spend a few minutes explaining
-how PyMTL works using these slides:
-
-  - [https://www.csl.cornell.edu/courses/ece5745/handouts/ece5745-S01-front-end-slides.pdf](https://www.csl.cornell.edu/courses/ece5745/handouts/ece5745-S01-front-end-slides.pdf)
-
-### Choose RTL Design Language
-
-So the first step is to decide if you want to do this section using PyMTL
-RTL or Verilog RTL. Edit these two files using `geany` or your favorite
-text editor to let the framework know your choice:
-
-    % geany $TOPDIR/sim/regincr/RegIncrRTL.py
-    % geany $TOPDIR/sim/regincr/RegIncrNstageRTL.py
-
-Set the `rtl_language` variable to `verilog` if you want to use Verilog
-for your RTL design and set it to `pymtl` if you want to use PyMTL for
-your RTL design. For example, this is what it would look like to use
-`verilog`:
-
-    rtl_language = 'verilog'
+(and indeed the entire course) you will use Verilog for RTL design and
+Python for test harnesses, simulation drivers, function-level models, and
+cycle-level models.
 
 ### Implement, Test, and Translate a Registered Incrementer
 
@@ -169,63 +156,22 @@ Now let's run all of the tests for the registered incrementer:
 
     % mkdir -p $TOPDIR/sim/build
     % cd $TOPDIR/sim/build
-    % pytest ../regincr
+    % pytest ../tut3_verilog/regincr
 
 The tests will fail because we need to finish the implementation. Let's
 start by focusing on the basic registered incrementer module.
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrRTL_test.py
+    % pytest ../tut3_verilog/regincr/test/RegIncr_test.py
 
-Use `geany` or your favorite text editor to open the implementation and
-uncomment the actual combinational logic for the increment operation. So
-a PyMTL RTL implementation should look as follows:
+Use your favorite text editor to open the implementation and uncomment
+the actual combinational logic for the increment operation. The Verilog
+RTL implementation should look as follows:
 
-    from pymtl3 import *
+    `ifndef TUT3_VERILOG_REGINCR_REG_INCR_V
+    `define TUT3_VERILOG_REGINCR_REG_INCR_V
 
-    class RegIncrPRTL( Component ):
-
-      # Constructor
-
-      def construct( s ):
-
-        # Port-based interface
-
-        s.in_ = InPort  ( Bits8 )
-        s.out = OutPort ( Bits8 )
-
-        # Sequential logic
-
-        s.reg_out = Wire( 8 )
-
-        @update_ff
-        def block1():
-          if s.reset:
-            s.reg_out <<= 0
-          else:
-            s.reg_out <<= s.in_
-
-        # Combinational logic
-
-        s.temp_wire = Wire( 8 )
-
-        @update
-        def block2():
-          s.temp_wire @= s.reg_out + 1
-
-        # Combinational logic
-
-        s.out //= s.temp_wire
-
-      def line_trace( s ):
-        return f"{s.in_} ({s.reg_out}) {s.out}"
-
-A Verilog RTL implementation should look as follows:
-
-    `ifndef REG_INCR_V
-    `define REG_INCR_V
-
-    module RegIncrVRTL
+    module tut3_verilog_regincr_RegIncr
     (
       input  logic       clk,
       input  logic       reset,
@@ -256,50 +202,51 @@ A Verilog RTL implementation should look as follows:
 
       assign out = temp_wire;
 
+      // Line tracing
+
+      `ifndef SYNTHESIS
+
+      logic [`VC_TRACE_NBITS-1:0] str;
+      `VC_TRACE_BEGIN
+      begin
+        $sformat( str, "%x (%x) %x", in_, reg_out, out );
+        vc_trace.append_str( trace_str, str );
+      end
+      `VC_TRACE_END
+
+      `endif /* SYNTHESIS */
+
     endmodule
 
-    `endif /* REG_INCR_V */
+    `endif /* TUT3_VERILOG_REGINCR_REG_INCR_V */
 
 If you have an error you can use a trace-back to get a more detailed
 error message:
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrRTL_test.py --tb=long
+    % pytest ../tut3_verilog/regincr/test/RegIncr_test.py --tb=long
 
 Once you have finished the implementation let's rerun the tests:
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrRTL_test.py -sv
+    % pytest ../tut3_verilog/regincr/test/RegIncr_test.py -sv
 
 The `-v` command line option tells `pytest` to be more verbose in its
 output and the `-s` command line option tells `pytest` to print out the
 line tracing. Make sure you understand the line tracing output. You can
-also dump VCD files for waveform debugging with `gtkwave`:
+also dump VCD files using `--dump-vcd` for waveform debugging with
+`gtkwave`:
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrRTL_test.py -sv --dump-vcd
-    % gtkwave regincr.RegIncrRTL_test__test_small.vcd
+    % pytest ../tut3_verilog/regincr/test/RegIncr_test.py -sv --dump-vcd
+    % gtkwave regincr.test.RegIncr_test__test_small_top.verilator1.vcd &
 
-If you are using Verilog RTL instead of PyMTL RTL, you need to use this:
-
-    % cd $TOPDIR/sim/build
-    % gtkwave regincr.RegIncrRTL_test__test_small_top.verilator1.vcd
-
-PyMTL supports automatically translating PyMTL RTL into Verilog RTL so we
-can then use that Verilog RTL with the ASIC flow. To test the translated
-verilog RTL you can use the `--test-verilog` command line option:
+PyMTL takes care of including all Verilog dependencies into a single
+Verilog file (also called "pickling") suitable for use with the ASIC
+flow. Take a look at the generated pickled Verilog file.
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrRTL_test.py --test-verilog
-    % ls *.v
-    % less RegIncrRTL__pickled.v
-
-You should use `--test-verilog` regardless of whether or not you
-implemented your design using PyMTL RTL or Verilog RTL. Take a look at
-the generated Verilog RTL. If you did your design in Verilog RTL then it
-won't generate any Verilog since we still have the Verilog RTL that you
-wrote by hand. If you did your design in PyMTL RTL, hopefully it should
-be clear the one-to-one mapping from PyMTL RTL to Verilog RTL.
+    % less RegIncr_noparam__pickled.v
 
 ### Implement, Test, and Translate Multi-Stage Registered Incrementer
 
@@ -312,59 +259,18 @@ start by running all of the tests for the multi-stage registered
 incrementer.
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrNstageRTL_test.py
+    % pytest ../tut3_verilog/regincr/test/RegIncrNstage_test.py
 
-Use geany or your favorite text editor to open the implementation and
-uncomment the static elabroation logic to instantiate a pipeline of
-registered incrementers. So a PyMTL RTL implementation should look as
-follows:
+Use your favorite text editor to open the implementation and uncomment
+the static elabroation logic to instantiate a pipeline of registered
+incrementers. The Verilog RTL implementation should look as follows:
 
-    from pymtl3 import *
-    from pymtl3.passes.backends.verilog import TranslationConfigs
-    from .RegIncrRTL import RegIncrRTL
+    `ifndef TUT3_VERILOG_REGINCR_REG_INCR_NSTAGE_V
+    `define TUT3_VERILOG_REGINCR_REG_INCR_NSTAGE_V
 
-    class RegIncrNstagePRTL( Component ):
+    `include "tut3_verilog/regincr/RegIncr.v"
 
-      # Constructor
-
-      def construct( s, nstages=2 ):
-
-        # Port-based interface
-
-        s.in_ = InPort  ( Bits8 )
-        s.out = OutPort ( Bits8 )
-
-        # Instantiate the registered incrementers
-
-        s.reg_incrs = [ RegIncrRTL() for _ in range(nstages) ]
-
-        # Connect input port to first reg_incr in chain
-
-        connect( s.in_, s.reg_incrs[0].in_ )
-
-        # Connect reg_incr in chain
-
-        for i in range( nstages - 1 ):
-          connect( s.reg_incrs[i].out, s.reg_incrs[i+1].in_ )
-
-        # Connect last reg_incr in chain to output port
-
-        connect( s.reg_incrs[-1].out, s.out )
-
-      # Line tracing
-
-    def line_trace( s ):
-      pipe_str = '|'.join([ str(reg_incr.out) for reg_incr in s.reg_incrs ])
-      return f"{s.in_} ({pipe_str}) {s.out}"
-
-So a Verilog RTL implementation should look as follows:
-
-    `ifndef REG_INCR_NSTAGE_V
-    `define REG_INCR_NSTAGE_V
-
-    `include "regincr/RegIncrVRTL.v"
-
-    module RegIncrNstageVRTL
+    module tut3_verilog_regincr_RegIncrNstage
     #(
       parameter nstages = 2
     )(
@@ -392,7 +298,7 @@ So a Verilog RTL implementation should look as follows:
       generate
       for ( i = 0; i < nstages; i = i + 1 ) begin: gen
 
-        RegIncrVRTL reg_incr
+        tut3_verilog_regincr_RegIncr reg_incr
         (
           .clk   (clk),
           .reset (reset),
@@ -410,44 +316,43 @@ So a Verilog RTL implementation should look as follows:
 
     endmodule
 
-    `endif /* REG_INCR_NSTAGE_V */
+    `endif /* TUT3_VERILOG_REGINCR_REG_INCR_NSTAGE_V */
 
 Before re-running the tests, let's take a look at how we are doing the
-testing in the corresponding test script. Use `geany` or your favorite
-text editor to open up `RegIncrNstageRTL_test.py`. Notice how PyMTL
-enables sophisticated testing for highly parameterized components. The
-test script includes directed tests for two and three stage pipelines
-with various small, large, and random values, and also includes random
-testing with 1, 2, 3, 4, 5, 6 stages. Writing a similar test harness in
-Verilog would likely require 10x more code and be significantly more
-tedious!
+testing in the corresponding test script. Use your favorite text editor
+to open up `RegIncrNstage_test.py`. Notice how PyMTL enables
+sophisticated testing for highly parameterized components. The test
+script includes directed tests for two and three stage pipelines with
+various small, large, and random values, and also includes random testing
+with 1, 2, 3, 4, 5, 6 stages. Writing a similar test harness in Verilog
+would likely require 10x more code and be significantly more tedious!
 
 Let's re-run a single test and use line tracing to see the data moving
 through the pipeline:
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrNstageRTL_test.py -sv -k 4stage_small
+    % pytest ../tut3_verilog/regincr/test/RegIncrNstage_test.py -sv -k test_random[4]
 
-And now let's run all of the tests both without and with translation:
-
-    % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrNstageRTL_test.py -sv
-    % pytest ../regincr/RegIncrNstageRTL_test.py --test-verilog
-    % ls *.v
-    % less RegIncr4stageRTL__pickled.v
-
-Notice how we have generated a wrapper which picks a specific parameter
-value for this instance of the multi-stage registered incrementer.
-
-Finally, we are going to run all of the tests with the `--dump-vtb`
-option which will generate a Verilog test-bench that can then be used for
-RTL and gate-level simulation.
+And now let's run all of the tests:
 
     % cd $TOPDIR/sim/build
-    % pytest ../regincr/RegIncrNstageRTL_test.py --test-verilog --dump-vtb
+    % pytest ../tut3_verilog/regincr/test/RegIncrNstage_test.py -sv
     % ls *.v
-    % less RegIncr4stageRTL_test_4stage_random_tb.v
-    % less RegIncr4stageRTL_test_4stage_random_tb.v.cases
+    % less RegIncrNstage__p_nstages_4__pickled.v
+
+Notice how PyMTL3 has generated a wrapper which picks a specific
+parameter value for this instance of the multi-stage registered
+incrementer.
+
+Finally, we are going to run all of the tests with the `--test-verilog`
+and `--dump-vtb` options which will generate a Verilog test-bench that
+can then be used for RTL and gate-level simulation.
+
+    % cd $TOPDIR/sim/build
+    % pytest ../tut3_verilog/regincr/test/RegIncrNstage_test.py --test-verilog --dump-vtb
+    % ls *.v
+    % less RegIncrNstage__p_nstages_4_test_random_4_tb.v
+    % less RegIncrNstage__p_nstages_4_test_random_4_tb.v.cases
 
 ### Simulate Multi-Stage Registered Incrementer
 
@@ -460,8 +365,8 @@ command line and sends these values through the pipeline. Let's see the
 simulator in action:
 
     % cd $TOPDIR/sim/build
-    % ../regincr/regincr-sim 0x10 0x20 0x30 0x40
-    % less RegIncr4stageRTL__pickled.v
+    % ../tut3_verilog/regincr/regincr-sim 0x10 0x20 0x30 0x40
+    % less RegIncr4stage__pickled.v
 
 We now have the Verilog RTL that we want push through the next step in
 the ASIC front-end flow.
@@ -469,22 +374,23 @@ the ASIC front-end flow.
 Using Synopsys VCS for 4-State RTL Simulation
 --------------------------------------------------------------------------
 
-Recall that PyMTL3 simulation of PyMTL3 RTL or Verilog RTL uses two-state
-simulation. To help catch bugs due to uninitialized state (and also just
-to help verify the design using another Verilog simulator), we can use
-Synopsys VCS for four-state RTL simulation. This simulator will make use
-of the Verilog test-bench generated by the `--dump-vtb` option from
-earlier (although we could also write our own Verilog test-bench from
-scratch). Here is how to run VCS for RTL simulation:
+Recall that PyMTL3 simulation of Verilog RTL uses Verilator which is a
+two-state simulator. To help catch bugs due to uninitialized state (and
+also just to help verify the design using another Verilog simulator), we
+can use Synopsys VCS for four-state RTL simulation. This simulator will
+make use of the Verilog test-bench generated by the `--test-verilog` and
+`--dump-vtb` options from earlier (although we could also write our own
+Verilog test-bench from scratch). Here is how to run VCS for RTL
+simulation:
 
     % mkdir -p $TOPDIR/asic/synopsys-vcs-rtl-sim
     % cd $TOPDIR/asic/synopsys-vcs-rtl-sim
     % vcs -full64 -sverilog +lint=all -xprop=tmerge -override_timescale=1ns/1ps \
         +incdir+../../sim/build \
         +vcs+dumpvars+vcs-rtl-sim.vcd \
-        -top RegIncr4stageRTL_tb \
-        ../../sim/build/RegIncr4stageRTL__pickled.v \
-        ../../sim/build/RegIncr4stageRTL_test_4stage_random_tb.v
+        -top RegIncrNstage__p_nstages_4_tb \
+        ../../sim/build/RegIncrNstage__p_nstages_4__pickled.v \
+        ../../sim/build/RegIncrNstage__p_nstages_4_test_random_4_tb.v
 
 This is a pretty long command line! We will go over some of these options
 in the discussion section. However, we also provide you a shell script
@@ -542,8 +448,8 @@ representation. The elaborate command recursively resolves all of the
 module references starting from the top-level module, and also infers
 various registers and/or advanced data-path components.
 
-    dc_shell> analyze -format sverilog ../../sim/build/RegIncr4stageRTL__pickled.v
-    dc_shell> elaborate RegIncr4stageRTL
+    dc_shell> analyze -format sverilog ../../sim/build/RegIncrNstage__p_nstages_4__pickled.v
+    dc_shell> elaborate RegIncrNstage__p_nstages_4
 
 We can use the `check_design` command to make sure there are no obvious
 errors in our Verilog RTL.
@@ -611,18 +517,21 @@ synthesis.
 You can use the following steps to view the gate-level schematic for the
 design.:
 
- - Select the `RegIncr4stageRTL` module in the _Logical Hierarchy_ panel
+ - Select the `RegIncrNstage__p_nstages_4` module in the _Logical Hierarchy_ panel
+ - Choose _Select > Cells > Leaf Cells of Selected Cells_ from the menu
  - Choose _Schematic > New Schematic View_ from the menu
- - Double click the box representing the `RegIncr4stageRTL` in the schematic view
- - Continue to double click to move through the design hierarchy
+ - Choose _Select > Clear_ from the menu
 
-You can determine the type of module or gate by selecting the module or
-gate and choosing _Edit > Properties_ from the menu. Then look for
-`ref_name`. You should be able to see the schematic for a single stage of
-the pipline including the flip-flops and an `add` module. See if you can
-figure out why the synthesis tool has inserted AND gates in front of each
-flip-flop. If you look inside the `add` module you should be able to see
-the adder microarchitecture.
+You can use the _Logical Hierarchy_ browser to highlight modules in the
+schematic view. If you click on the drop down you can choose _Cells
+(All)_ instead of _Cells (Hierarchical)_ to browse the standard cells as
+well. You can determine the type of module or gate by selecting the
+module or gate and choosing _Edit > Properties_ from the menu. Then look
+for `ref_name`. You should be able to see the schematic for eaech stage
+of the pipline including the flip-flops and and the add module. See if
+you can figure out why the synthesis tool has inserted AND gates in front
+of each flip-flop. If you look inside the `add` module you should be able
+to see the adder microarchitecture.
 
 You can use the following steps to view a histogram of path slack, and
 also to open a gave-level schematic of just the critical path.
@@ -630,7 +539,7 @@ also to open a gave-level schematic of just the critical path.
  - Choose _Timing > Path Slack_ from the menu
  - Click _OK_ in the pop-up window
  - Select the left-most bar in the histogram to see list of most critical paths
- - Right click first path (the critical path) and choose _Path Schematic_
+ - Select one of the paths in the path list to highlight the path in the schematic view
 
 Using Synopsys VCS for Fast-Functional Gate-Level Simulation
 --------------------------------------------------------------------------
@@ -649,10 +558,10 @@ in RTL simulation. Here is how to run VCS for RTL simulation:
         +delay_mode_zero \
         +incdir+../../sim/build \
         +vcs+dumpvars+vcs-ffgl-sim.vcd \
-        -top RegIncr4stageRTL_tb \
+        -top RegIncrNstage__p_nstages_4_tb \
         $ECE5745_STDCELLS/stdcells.v \
         ../synopsys-dc-synth/post-synth.v \
-        ../../sim/build/RegIncr4stageRTL_test_4stage_random_tb.v
+        ../../sim/build/RegIncrNstage__p_nstages_4_test_random_4_tb.v
 
 This is a pretty long command line! So we provide you a shell script that
 has the command ready for you to use.
