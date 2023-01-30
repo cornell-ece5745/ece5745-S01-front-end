@@ -33,9 +33,9 @@ the PyMTL simulator, Synopsys DC, and Synopsys VCS:
 
  - We write our RTL models in Verilog, and we use the PyMTL framework to
    test, verify, and evaluate the execution time (in cycles) of our
-   design. This part of the flow is very similar to the flow used in ECE
-   4750. Once we are sure our design is working correctly, we can then
-   start to push the design through the flow.
+   design. This part of the flow is very similar to the flow used in
+   ECE 4750. Once we are sure our design is working correctly, we can
+   then start to push the design through the flow.
 
  - We use Synopsys Design Compiler (DC) to synthesize our design, which
    means to transform the Verilog RTL model into a Verilog gate-level
