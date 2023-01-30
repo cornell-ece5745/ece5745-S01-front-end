@@ -36,7 +36,7 @@ module tut3_verilog_regincr_RegIncrNstage
 
   // genvar i;
   // generate
-  // for ( i = 0; i < nstages; i = i + 1 ) begin: gen
+  // for ( i = 0; i < p_nstages; i = i + 1 ) begin: gen
   //
   //   tut3_verilog_regincr_RegIncr reg_incr
   //   (
